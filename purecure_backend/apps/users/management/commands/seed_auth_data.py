@@ -202,4 +202,54 @@ class Command(BaseCommand):
         except DoctorProfile.DoesNotExist:
             self.stdout.write(self.style.WARNING("Doctor PC-GEN-003 not found"))
 
-        self.stdout.write(self.style.SUCCESS('Clinic and doctor seeding complete!'))
+        # 5. Create DoctorSchedule rows for all 3 seed doctors
+        from apps.timeslots.models import DoctorSchedule
+        from apps.timeslots.utils import generate_slots_for_all_doctors
+        from datetime import time as t
+
+        schedule_data = [
+            # (license_number, weekday, start, end, duration)
+            # Dr. Jenkins — Mon to Fri, 9am-5pm
+            ('PC-DERM-001', 0, '09:00', '17:00', 30),
+            ('PC-DERM-001', 1, '09:00', '17:00', 30),
+            ('PC-DERM-001', 2, '09:00', '17:00', 30),
+            ('PC-DERM-001', 3, '09:00', '17:00', 30),
+            ('PC-DERM-001', 4, '09:00', '13:00', 30),  # Friday half-day
+
+            # Dr. Chen — Mon, Wed, Fri, 10am-6pm
+            ('PC-CARD-002', 0, '10:00', '18:00', 30),
+            ('PC-CARD-002', 2, '10:00', '18:00', 30),
+            ('PC-CARD-002', 4, '10:00', '18:00', 30),
+
+            # Dr. Rodriguez — Mon to Sat, 8am-8pm
+            ('PC-GEN-003', 0, '08:00', '20:00', 30),
+            ('PC-GEN-003', 1, '08:00', '20:00', 30),
+            ('PC-GEN-003', 2, '08:00', '20:00', 30),
+            ('PC-GEN-003', 3, '08:00', '20:00', 30),
+            ('PC-GEN-003', 4, '08:00', '20:00', 30),
+            ('PC-GEN-003', 5, '09:00', '14:00', 30),  # Saturday morning
+        ]
+
+        for license_no, weekday, start, end, duration in schedule_data:
+            try:
+                doctor = DoctorProfile.objects.get(license_number=license_no)
+                start_h, start_m = map(int, start.split(':'))
+                end_h, end_m = map(int, end.split(':'))
+                DoctorSchedule.objects.get_or_create(
+                    doctor=doctor,
+                    weekday=weekday,
+                    start_time=t(start_h, start_m),
+                    defaults={
+                        'end_time': t(end_h, end_m),
+                        'slot_duration_minutes': duration,
+                        'is_active': True,
+                    }
+                )
+            except DoctorProfile.DoesNotExist:
+                self.stdout.write(self.style.WARNING(f"Doctor {license_no} not found"))
+
+        self.stdout.write(self.style.SUCCESS("Schedules created. Generating time slots for next 14 days..."))
+        result = generate_slots_for_all_doctors(days_ahead=14)
+        self.stdout.write(self.style.SUCCESS(f"Slots generated: {result['total_created']} created, {result['total_skipped']} skipped"))
+
+        self.stdout.write(self.style.SUCCESS('Time slot seeding complete!'))
