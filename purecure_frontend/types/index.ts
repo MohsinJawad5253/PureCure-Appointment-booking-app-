@@ -1,0 +1,172 @@
+// ─── Auth & User ──────────────────────────────────────────────
+export type UserRole = 'patient' | 'doctor';
+
+export interface User {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  phone: string;
+  role: UserRole;
+  profile_photo: string | null;
+  gender: 'male' | 'female' | 'other' | '';
+  date_of_birth: string | null;
+  is_profile_complete: boolean;
+  created_at: string;
+}
+
+export interface AuthTokens {
+  access: string;
+  refresh: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: User;
+    tokens: AuthTokens;
+  };
+}
+
+// ─── Doctor & Clinic ──────────────────────────────────────────
+export type Specialty =
+  | 'general' | 'cardiology' | 'dermatology' | 'dental'
+  | 'ophthalmology' | 'orthopedics' | 'pediatrics'
+  | 'psychiatry' | 'gynecology' | 'neurology';
+
+export interface ClinicMinimal {
+  id: string;
+  name: string;
+  city: string;
+  rating: number;
+  distance_km: number;
+}
+
+export interface Clinic extends ClinicMinimal {
+  address: string;
+  photo: string | null;
+  review_count: number;
+  tags: string[];
+  opening_time: string;
+  closing_time: string;
+  phone: string;
+  email: string;
+  doctor_count: number;
+}
+
+export interface Doctor {
+  id: string;
+  user_id: string;
+  full_name: string;
+  specialty: Specialty;
+  specialty_display: string;
+  clinic_name: string;
+  clinic: ClinicMinimal | null;
+  years_experience: number;
+  rating: number;
+  review_count: number;
+  consultation_fee: number;
+  is_available: boolean;
+  profile_photo: string | null;
+  languages: string[];
+  bio?: string;
+}
+
+// ─── Time Slots ───────────────────────────────────────────────
+export type SlotStatus =
+  | 'available' | 'booked' | 'blocked'
+  | 'completed' | 'cancelled';
+
+export interface TimeSlot {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: SlotStatus;
+  slot_duration_minutes: number;
+  is_available: boolean;
+  is_past: boolean;
+  display_time: string;
+}
+
+export interface DayAvailability {
+  date: string;
+  weekday: string;
+  day_number: number;
+  available_count: number;
+  has_slots: boolean;
+}
+
+// ─── Appointments ─────────────────────────────────────────────
+export type AppointmentStatus =
+  | 'upcoming' | 'in_progress' | 'completed'
+  | 'cancelled_by_patient' | 'cancelled_by_doctor'
+  | 'no_show' | 'rescheduled';
+
+export interface Appointment {
+  id: string;
+  status: AppointmentStatus;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  reason: string;
+  patient_notes: string;
+  notes: string;
+  cancellation_reason: string;
+  cancelled_at: string | null;
+  is_cancellable: boolean;
+  is_reschedulable: boolean;
+  has_review: boolean;
+  created_at: string;
+  updated_at: string;
+  rescheduled_from: string | null;
+  doctor: {
+    id: string;
+    full_name: string;
+    specialty: string;
+    specialty_display: string;
+    clinic_name: string;
+    profile_photo: string | null;
+    rating: number;
+  };
+  time_slot: Pick<TimeSlot, 'id' | 'date' | 'start_time' | 'end_time' | 'display_time'>;
+}
+
+export interface AppointmentDoctor extends Omit<Appointment, 'doctor'> {
+  patient: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string;
+    gender: string;
+    date_of_birth: string | null;
+    profile_photo: string | null;
+  };
+}
+
+// ─── API Response wrappers ────────────────────────────────────
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  message: string;
+  data: {
+    results: T[];
+    count: number;
+    next: string | null;
+    previous: string | null;
+  };
+}
+
+// ─── Navigation params ────────────────────────────────────────
+export type RootStackParamList = {
+  '(auth)': undefined;
+  '(patient)': undefined;
+  '(doctor)': undefined;
+};
