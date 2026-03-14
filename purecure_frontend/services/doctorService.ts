@@ -1,5 +1,5 @@
 import api from './api';
-import { Doctor, PaginatedResponse, DayAvailability, TimeSlot } from '@types/index';
+import { Doctor, PaginatedResponse, DayAvailability, TimeSlot } from '@/types';
 
 export const doctorService = {
   async list(params?: {
@@ -17,7 +17,7 @@ export const doctorService = {
 
   async topRated(): Promise<Doctor[]> {
     const res = await api.get('/doctors/top-rated/');
-    return res.data.data.doctors ?? res.data.data;
+    return res.data.data?.doctors ?? res.data.data;
   },
 
   async detail(id: string): Promise<Doctor> {

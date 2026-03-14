@@ -26,8 +26,28 @@ export const formatTime = (timeStr: string): string => {
 export const formatTimeRange = (start: string, end: string): string =>
   `${formatTime(start)} – ${formatTime(end)}`;
 
-export const formatCurrency = (amount: number): string =>
-  `₹${amount.toLocaleString('en-IN')}`;
+export const formatCurrency = (amount: number | string): string => {
+  const num = parseFloat(String(amount || 0));
+  return isNaN(num) ? '₹0' : `₹${num.toLocaleString('en-IN')}`;
+};
+
+// Safe rating display — handles string "4.9" or number 4.9 or undefined
+export const formatRating = (rating: any): string => {
+  const num = parseFloat(String(rating || 0));
+  return isNaN(num) ? '0.0' : num.toFixed(1);
+};
+
+// Safe currency — handles string "800.00" or number 800
+export const formatFee = (fee: any): string => {
+  const num = parseFloat(String(fee || 0));
+  return isNaN(num) ? '₹0' : `₹${num.toLocaleString('en-IN')}`;
+};
+
+export const formatDoctorName = (fullName: string): string => {
+  // Remove duplicate "Dr." prefix if backend already includes it
+  const cleaned = fullName.replace(/^Dr\.\s*/i, '');
+  return `Dr. ${cleaned}`;
+};
 
 export const getInitials = (name: string): string => {
   const parts = name.trim().split(' ');

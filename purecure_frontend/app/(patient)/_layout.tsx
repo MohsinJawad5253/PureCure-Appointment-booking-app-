@@ -2,6 +2,7 @@ import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@store/authStore';
 import { COLORS } from '@constants/index';
+import { Platform } from 'react-native';
 
 export default function PatientTabLayout() {
   const { isAuthenticated, user } = useAuthStore();
@@ -15,19 +16,14 @@ export default function PatientTabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 0.5,
           borderTopColor: '#E5E7EB',
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 85 : 65,
           paddingTop: 8,
-          height: 64,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -41,11 +37,7 @@ export default function PatientTabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={22}
-              color={color}
-            />
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -54,11 +46,7 @@ export default function PatientTabLayout() {
         options={{
           title: 'Search',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'search' : 'search-outline'}
-              size={22}
-              color={color}
-            />
+            <Ionicons name={focused ? 'search' : 'search-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -67,11 +55,7 @@ export default function PatientTabLayout() {
         options={{
           title: 'Bookings',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
-              size={22}
-              color={color}
-            />
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -80,14 +64,20 @@ export default function PatientTabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={22}
-              color={color}
-            />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
           ),
         }}
       />
+
+      {/* Hide all non-tab screens from tab bar */}
+      <Tabs.Screen name="doctor/[id]" options={{ href: null }} />
+      <Tabs.Screen name="booking/confirm" options={{ href: null }} />
+      <Tabs.Screen name="booking/success" options={{ href: null }} />
+      <Tabs.Screen name="clinic/[id]" options={{ href: null }} />
+      <Tabs.Screen name="appointments/[id]/index" options={{ href: null }} />
+      <Tabs.Screen name="appointments/[id]/reschedule" options={{ href: null }} />
+      <Tabs.Screen name="appointments/[id]/review" options={{ href: null }} />
+      <Tabs.Screen name="appointments/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

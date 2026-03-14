@@ -40,8 +40,8 @@ export interface ClinicMinimal {
   id: string;
   name: string;
   city: string;
-  rating: number;
-  distance_km: number;
+  rating: number | string;
+  distance_km: number | string;
 }
 
 export interface Clinic extends ClinicMinimal {
@@ -52,8 +52,12 @@ export interface Clinic extends ClinicMinimal {
   opening_time: string;
   closing_time: string;
   phone: string;
+  phone_number?: string; // Some parts of code use this
   email: string;
   doctor_count: number;
+  doctors?: Doctor[];
+  description?: string;
+  rating: number | string;
 }
 
 export interface Doctor {
@@ -65,9 +69,9 @@ export interface Doctor {
   clinic_name: string;
   clinic: ClinicMinimal | null;
   years_experience: number;
-  rating: number;
+  rating: number | string;
   review_count: number;
-  consultation_fee: number;
+  consultation_fee: number | string;
   is_available: boolean;
   profile_photo: string | null;
   languages: string[];
@@ -129,7 +133,7 @@ export interface Appointment {
     specialty_display: string;
     clinic_name: string;
     profile_photo: string | null;
-    rating: number;
+    rating: number | string;
   };
   time_slot: Pick<TimeSlot, 'id' | 'date' | 'start_time' | 'end_time' | 'display_time'>;
 }
