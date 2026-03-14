@@ -60,27 +60,42 @@ class PatientAppointmentListView(APIView):
         queryset = Appointment.objects.filter(patient=request.user)
         
         if status_filter:
-            queryset = queryset.filter(status=status_filter)
+            if status_filter == 'cancelled':
+                queryset = queryset.filter(
+                    Q(status='cancelled_by_patient') | 
+                    Q(status='cancelled_by_doctor') | 
+                    Q(status='no_show')
+                )
+            else:
+                queryset = queryset.filter(status=status_filter)
+                
         if date_filter:
             queryset = queryset.filter(appointment_date=date_filter)
             
-        # Default logic: upcoming first, then past
+        # Sorting
         if not status_filter and not request.query_params.get('ordering'):
             upcoming = queryset.filter(status='upcoming').order_by('appointment_date', 'start_time')
             past = queryset.exclude(status='upcoming').order_by('-appointment_date', '-start_time')
             result_list = list(upcoming) + list(past)
-            # Manual pagination or just return all for now since limit is 10
-            # For simplicity, we'll just use the list
-            serializer = AppointmentPatientSerializer(result_list[:20], many=True)
+            # Use limited set for non-ordered main list
+            paginated_results = result_list[:50]
         else:
             ordering = request.query_params.get('ordering', 'appointment_date')
             queryset = queryset.order_by(ordering)
-            serializer = AppointmentPatientSerializer(queryset[:20], many=True)
+            paginated_results = queryset[:50]
             
+        serializer = AppointmentPatientSerializer(paginated_results, many=True)
+        
+        # Wrap in expected frontend pagination structure
         return api_response(
             success=True,
             message="Appointments retrieved",
-            data=serializer.data
+            data={
+                "results": serializer.data,
+                "count": len(serializer.data), # Simple count for now
+                "next": None,
+                "previous": None
+            }
         )
 
 
@@ -196,7 +211,17 @@ class DoctorAppointmentListView(APIView):
         queryset = queryset.order_by(ordering, 'start_time')
         
         serializer = AppointmentDoctorSerializer(queryset[:50], many=True)
-        return api_response(success=True, message="Doctor appointments retrieved", data=serializer.data)
+        
+        return api_response(
+            success=True,
+            message="Doctor appointments retrieved",
+            data={
+                "results": serializer.data,
+                "count": len(serializer.data),
+                "next": None,
+                "previous": None
+            }
+        )
 
 
 class DoctorAppointmentDetailView(APIView):

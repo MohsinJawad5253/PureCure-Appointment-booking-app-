@@ -148,7 +148,6 @@ export default function AppointmentsScreen() {
   const [hasMore, setHasMore] = useState(true);
 
   const getStatusParam = (tab: TabStatus) => {
-    if (tab === 'cancelled') return 'cancelled_by_patient';
     return tab;
   };
 
