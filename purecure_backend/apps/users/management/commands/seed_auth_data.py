@@ -253,3 +253,61 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Slots generated: {result['total_created']} created, {result['total_skipped']} skipped"))
 
         self.stdout.write(self.style.SUCCESS('Time slot seeding complete!'))
+
+        # 6. Seed sample appointments
+        from apps.appointments.services import AppointmentService
+        from apps.timeslots.models import TimeSlot
+        from django.utils import timezone
+        from datetime import timedelta
+
+        self.stdout.write("\nSeeding sample appointments...")
+
+        # Get seed users
+        try:
+            patient1 = User.objects.get(email='patient1@purecure.com')
+            patient2 = User.objects.get(email='patient2@purecure.com')
+            doctor1_profile = DoctorProfile.objects.get(license_number='PC-DERM-001')
+            doctor2_profile = DoctorProfile.objects.get(license_number='PC-CARD-002')
+
+            # Find first available future slot for doctor1
+            tomorrow = timezone.now().date() + timedelta(days=1)
+            slot1 = TimeSlot.objects.filter(
+                doctor=doctor1_profile,
+                date=tomorrow,
+                status='available'
+            ).order_by('start_time').first()
+
+            if slot1:
+                appt1 = AppointmentService.book_appointment(
+                    patient=patient1,
+                    doctor_id=str(doctor1_profile.id),
+                    slot_id=str(slot1.id),
+                    reason='Annual skin checkup',
+                    patient_notes='Have a mole on my left arm I want checked',
+                )
+                self.stdout.write(self.style.SUCCESS(f"Appointment 1 created: {appt1}"))
+
+            # Find slot for doctor2 day after tomorrow
+            day_after = timezone.now().date() + timedelta(days=2)
+            slot2 = TimeSlot.objects.filter(
+                doctor=doctor2_profile,
+                date=day_after,
+                status='available'
+            ).order_by('start_time').first()
+
+            if slot2:
+                appt2 = AppointmentService.book_appointment(
+                    patient=patient2,
+                    doctor_id=str(doctor2_profile.id),
+                    slot_id=str(slot2.id),
+                    reason='Chest pain follow-up',
+                    patient_notes='Experiencing occasional chest tightness',
+                )
+                self.stdout.write(self.style.SUCCESS(f"Appointment 2 created: {appt2}"))
+
+            self.stdout.write(self.style.SUCCESS("Sample appointments seeded successfully!"))
+
+        except User.DoesNotExist:
+            self.stdout.write(self.style.WARNING("Seed users not found — skipping appointment seeding"))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Appointment seeding error: {e}"))
