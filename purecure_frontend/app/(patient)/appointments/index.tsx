@@ -61,10 +61,19 @@ const AppointmentCard = ({
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
       <View style={styles.cardTop}>
-        <Image 
-          source={item.doctor.profile_photo ? { uri: item.doctor.profile_photo } : null} 
-          style={styles.avatar} 
-        />
+        {item.doctor.profile_photo ? (
+          <Image 
+            source={{ uri: item.doctor.profile_photo }} 
+            style={styles.avatar} 
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#FEF0F4' }]}>
+            <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 20 }}>
+              {item.doctor.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR'}
+            </Text>
+          </View>
+        )}
         <View style={styles.doctorMeta}>
           <Text style={styles.doctorName}>{formatDoctorName(item.doctor.full_name)}</Text>
           <Text style={styles.doctorSpecialty}>{item.doctor.specialty_display}</Text>

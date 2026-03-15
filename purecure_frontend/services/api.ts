@@ -91,8 +91,13 @@ api.interceptors.response.use(
         refresh: refreshToken,
       });
 
-      const newAccessToken: string = response.data.data?.tokens?.access
+      const newAccessToken: string = response.data.data?.access
+        || response.data.data?.tokens?.access
         || response.data.access;
+
+      if (!newAccessToken || typeof newAccessToken !== 'string') {
+        throw new Error('No new access token received from server');
+      }
 
       await SecureStore.setItemAsync(
         SECURE_STORE_KEYS.ACCESS_TOKEN,

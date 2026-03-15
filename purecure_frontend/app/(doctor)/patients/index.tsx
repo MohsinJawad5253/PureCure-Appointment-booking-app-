@@ -1,11 +1,17 @@
 import { View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS, FONT_SIZE } from '@constants/index';
 
-export default function PatientsListScreen() {
+export default function DoctorPatients() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 18, color: '#6B7280' }}>Patients</Text>
+    <SafeAreaView style={{ flex:1, backgroundColor: COLORS.white }}>
+      <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
+        <Text style={{ fontSize: FONT_SIZE.xl, fontWeight:'700', color: COLORS.textPrimary }}>
+          Patients
+        </Text>
+        <Text style={{ fontSize: FONT_SIZE.md, color: COLORS.textSecondary, marginTop: 8 }}>
+          Coming soon
+        </Text>
       </View>
     </SafeAreaView>
   );

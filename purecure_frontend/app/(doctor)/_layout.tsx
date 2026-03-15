@@ -1,5 +1,6 @@
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
 import { useAuthStore } from '@store/authStore';
 import { COLORS } from '@constants/index';
 
@@ -15,19 +16,14 @@ export default function DoctorTabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 0.5,
           borderTopColor: '#E5E7EB',
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 85 : 65,
           paddingTop: 8,
-          height: 64,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -43,8 +39,7 @@ export default function DoctorTabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'time' : 'time-outline'}
-              size={22}
-              color={color}
+              size={22} color={color}
             />
           ),
         }}
@@ -56,8 +51,7 @@ export default function DoctorTabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'people' : 'people-outline'}
-              size={22}
-              color={color}
+              size={22} color={color}
             />
           ),
         }}
@@ -69,8 +63,7 @@ export default function DoctorTabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'bar-chart' : 'bar-chart-outline'}
-              size={22}
-              color={color}
+              size={22} color={color}
             />
           ),
         }}
@@ -82,12 +75,16 @@ export default function DoctorTabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'person' : 'person-outline'}
-              size={22}
-              color={color}
+              size={22} color={color}
             />
           ),
         }}
       />
+      {/* Hide all non-tab screens */}
+      <Tabs.Screen name="appointments/[id]" options={{ href: null }} />
+      <Tabs.Screen name="patients/[id]" options={{ href: null }} />
+      <Tabs.Screen name="schedule/index" options={{ href: null }} />
+      <Tabs.Screen name="notifications/index" options={{ href: null }} />
     </Tabs>
   );
 }

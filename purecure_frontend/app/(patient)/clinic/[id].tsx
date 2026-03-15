@@ -46,6 +46,7 @@ export default function ClinicDetailScreen() {
 
   useEffect(() => {
     const fetchDetail = async () => {
+      setLoading(true);
       try {
         const data = await clinicService.detail(id);
         setClinic(data);
@@ -105,8 +106,10 @@ export default function ClinicDetailScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <Image 
+          key={clinic.id}
           source={clinic.photo ? { uri: clinic.photo } : null} 
           style={styles.clinicHeroImage} 
+          contentFit="cover"
         />
 
         <View style={styles.content}>
