@@ -36,7 +36,7 @@ export const dashboardService = {
     page?: number;
   }) {
     const res = await api.get('/dashboard/patients/', { params });
-    return res.data;
+    return res.data.data ?? res.data;
   },
 
   async patientDetail(patientId: string) {

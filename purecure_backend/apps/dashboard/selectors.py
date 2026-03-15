@@ -1,7 +1,7 @@
 from datetime import date, timedelta, datetime, timezone as tz
 from django.db.models import (
     Count, Avg, Sum, Q, F, Value, CharField,
-    Case, When, IntegerField, DecimalField
+    Case, When, IntegerField, DecimalField, Max
 )
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
 from django.utils import timezone
@@ -130,8 +130,9 @@ def get_doctor_patient_list(doctor: DoctorProfile, search: str = '',
             appointments__doctor=doctor,
             appointments__status='completed'
         )),
-        last_visit=TruncDate(
+        last_visit=Max(
             'appointments__appointment_date',
+            filter=Q(appointments__doctor=doctor)
         ),
         upcoming_count=Count('appointments', filter=Q(
             appointments__doctor=doctor,
