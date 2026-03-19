@@ -236,7 +236,7 @@ export default function RegisterPatient() {
               label="First Name"
               value={formData.firstName}
               onChangeText={(t) => setFormData({ ...formData, firstName: t })}
-              placeholder="John"
+              placeholder="rohit"
               icon="person-outline"
               error={errors.firstName}
               containerStyle={{ flex: 1 }}
@@ -247,7 +247,7 @@ export default function RegisterPatient() {
               label="Last Name"
               value={formData.lastName}
               onChangeText={(t) => setFormData({ ...formData, lastName: t })}
-              placeholder="Doe"
+              placeholder="sharma"
               icon="person-outline"
               error={errors.lastName}
               containerStyle={{ flex: 1 }}
@@ -259,7 +259,7 @@ export default function RegisterPatient() {
             label="Email Address"
             value={formData.email}
             onChangeText={(t) => setFormData({ ...formData, email: t })}
-            placeholder="john@example.com"
+            placeholder="rohit@example.com"
             icon="mail-outline"
             keyboardType="email-address"
             error={errors.email}
