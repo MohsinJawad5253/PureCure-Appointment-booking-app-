@@ -223,3 +223,32 @@ class ChangePasswordView(APIView):
             errors=serializer.errors,
             status_code=status.HTTP_400_BAD_REQUEST
         )
+
+class SavePushTokenView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        push_token = request.data.get('push_token', '').strip()
+
+        if not push_token:
+            return api_response(
+                success=False,
+                message="push_token is required",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate it looks like an Expo push token
+        if not push_token.startswith('ExponentPushToken['):
+            return api_response(
+                success=False,
+                message="Invalid push token format",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        request.user.push_token = push_token
+        request.user.save(update_fields=['push_token'])
+
+        return api_response(
+            success=True,
+            message="Push token saved successfully"
+        )

@@ -83,6 +83,17 @@ class AppointmentService:
             patient_notes=patient_notes,
         )
 
+        # ── SEND PUSH NOTIFICATION TO DOCTOR ───────────────────
+        from apps.users.push_notifications import send_new_booking_to_doctor
+        try:
+            send_new_booking_to_doctor(appointment)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(
+                f'Failed to send booking notification: {e}'
+            )
+        # ────────────────────────────────────────────────────────
+
         return appointment
 
     @staticmethod
@@ -128,6 +139,24 @@ class AppointmentService:
             'status', 'cancellation_reason', 'cancelled_at',
             'cancelled_by', 'updated_at'
         ])
+
+        # ── SEND PUSH NOTIFICATION ──────────────────────────────
+        # Import here to avoid circular imports
+        from apps.users.push_notifications import (
+            send_appointment_cancelled_by_doctor
+        )
+
+        # Only notify patient when DOCTOR cancels
+        if cancelled_by.role == 'doctor':
+            try:
+                send_appointment_cancelled_by_doctor(appointment)
+            except Exception as e:
+                # Never let notification failure break cancellation
+                import logging
+                logging.getLogger(__name__).error(
+                    f'Failed to send cancellation notification: {e}'
+                )
+        # ────────────────────────────────────────────────────────
 
         return appointment
 

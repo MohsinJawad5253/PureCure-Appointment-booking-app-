@@ -20,6 +20,12 @@ class User(AbstractUser):
         blank=True
     )
     is_profile_complete = models.BooleanField(default=False)
+    push_token = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text='Expo push notification token'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

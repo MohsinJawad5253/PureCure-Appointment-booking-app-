@@ -24,15 +24,33 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.purecure.app"
+      "package": "com.purecure.app",
+      "useNextNotificationsApi": true
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#E8184A",
+          "sounds": []
+        }
+      ]
     ],
     "scheme": "purecure",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "bc84aeab-fe6d-43af-b3bf-0de10f012f17"
+      }
+    },
+    "owner": "mohsin_jawad5253"
   }
 }

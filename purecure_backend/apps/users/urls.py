@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     PatientRegisterView, DoctorRegisterView, LoginView, LogoutView,
-    CustomTokenRefreshView, MeView, UpdateProfileView, ChangePasswordView
+    CustomTokenRefreshView, MeView, UpdateProfileView, ChangePasswordView,
+    SavePushTokenView
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path('me/', MeView.as_view(), name='me'),
     path('me/update/', UpdateProfileView.as_view(), name='me-update'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('push-token/', SavePushTokenView.as_view(), name='push-token'),
 ]

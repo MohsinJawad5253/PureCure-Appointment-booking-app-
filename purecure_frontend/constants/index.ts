@@ -205,8 +205,8 @@ export const COMMON_STYLES = {
   },
 } as const;
 
-// Keep the rest of your existing constants below
-export const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
+export const API_BASE_URL = 'https://purecure-appointment-booking-app-g5ua.onrender.com/api';
 
 export const SECURE_STORE_KEYS = {
   ACCESS_TOKEN: 'purecure_access_token',
