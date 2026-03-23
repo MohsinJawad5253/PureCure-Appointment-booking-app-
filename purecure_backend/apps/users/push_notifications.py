@@ -73,7 +73,7 @@ def send_appointment_cancelled_by_doctor(appointment) -> bool:
     """
     patient = appointment.patient
     doctor = appointment.doctor
-    doctor_name = f"Dr. {doctor.full_name}"
+    doctor_name = f"Dr. {doctor.user.full_name}"
 
     if not patient.push_token:
         logger.info(f'Patient {patient.email} has no push token')
@@ -135,7 +135,7 @@ def send_appointment_reminder(appointment) -> bool:
     if not patient.push_token:
         return False
 
-    doctor_name = f"Dr. {doctor.full_name}"
+    doctor_name = f"Dr. {doctor.user.full_name}"
     appt_time = appointment.start_time.strftime('%I:%M %p').lstrip('0')
 
     return send_push_notification(
