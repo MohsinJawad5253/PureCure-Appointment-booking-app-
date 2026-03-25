@@ -16,6 +16,7 @@ import {
 import {
   formatDate, formatTime, formatTimeRange,
   formatFee, formatRating, formatDoctorName,
+  formatImageUrl,
 } from '@utils/index';
 import { Appointment } from '@/types';
 
@@ -144,8 +145,10 @@ export default function AppointmentDetailScreen() {
         <View style={styles.card}>
           <View style={styles.doctorInfoRow}>
             <Image 
-              source={appointment.doctor.profile_photo ? { uri: appointment.doctor.profile_photo } : null} 
-              style={styles.doctorAvatar} 
+              source={formatImageUrl(appointment.doctor.profile_photo)} 
+              style={styles.doctorAvatar}
+              contentFit="cover"
+              transition={200}
             />
             <View style={styles.doctorMeta}>
               <Text style={styles.doctorName}>{formatDoctorName(appointment.doctor.full_name)}</Text>
@@ -218,8 +221,7 @@ export default function AppointmentDetailScreen() {
               </View>
               <View>
                 <Text style={styles.infoLabel}>Consultation Fee</Text>
-                <Text style={styles.infoValue}>{formatFee(appointment.doctor.rating)}</Text> 
-                {/* Note: In practical app, fee would come from backend, using doctor rating as placeholder for now if fee missing from appointment object */}
+                <Text style={styles.infoValue}>{formatFee(appointment.doctor.consultation_fee)}</Text>
               </View>
             </View>
 

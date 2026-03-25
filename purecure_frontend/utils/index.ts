@@ -1,4 +1,5 @@
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
+import { API_BASE_URL } from '@constants/index';
 
 export const formatDate = (dateStr: string): string => {
   try {
@@ -70,4 +71,24 @@ export const extractAxiosError = (error: unknown): string => {
     return data?.message ?? 'An error occurred';
   }
   return 'An error occurred';
+};
+
+export const formatImageUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+
+  // If already absolute with https, return as is
+  if (url.startsWith('https://')) return url;
+
+  // If http, force https (for iOS ATS)
+  if (url.startsWith('http://')) {
+    return url.replace('http://', 'https://');
+  }
+
+  // If relative, prefix with base domain
+  if (url.startsWith('/')) {
+    const baseDomain = API_BASE_URL.replace('/api', '');
+    return `${baseDomain}${url}`;
+  }
+
+  return url;
 };

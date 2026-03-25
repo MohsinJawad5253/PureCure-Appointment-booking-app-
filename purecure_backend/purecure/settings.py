@@ -110,3 +110,7 @@ WSGI_APPLICATION = 'purecure.wsgi.application'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:8000').split(',')
+
+# SECURE SETTINGS FOR RENDER/PROXIES
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True

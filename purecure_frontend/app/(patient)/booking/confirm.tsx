@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { appointmentService } from '@services/appointmentService';
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOW } from '@constants/index';
-import { formatDoctorName } from '@utils/index';
+import { formatDoctorName, formatFee } from '@utils/index';
 
 export default function BookingConfirmScreen() {
   const router = useRouter();
@@ -134,7 +134,7 @@ export default function BookingConfirmScreen() {
 
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Consultation Fee</Text>
-              <Text style={styles.totalValue}>₹{params.fee}</Text>
+              <Text style={styles.totalValue}>{formatFee(params.fee)}</Text>
             </View>
           </View>
 

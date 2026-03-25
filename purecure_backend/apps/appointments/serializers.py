@@ -6,17 +6,25 @@ from .models import Appointment, AppointmentReview
 
 class AppointmentDoctorMinimalSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='user.full_name', read_only=True)
+    profile_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = DoctorProfile
         fields = [
-            'id', 'full_name', 'specialty',
-            'clinic_name', 'profile_photo', 'rating'
+            'id', 'user_id', 'full_name', 'specialty', 'specialty_display',
+            'clinic_name', 'profile_photo', 'rating', 'consultation_fee'
         ]
+
+    def get_profile_photo(self, obj):
+        request = self.context.get('request')
+        if obj.profile_photo and request:
+            return request.build_absolute_uri(obj.profile_photo.url)
+        return None
 
 
 class AppointmentPatientMinimalSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
+    profile_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -24,6 +32,12 @@ class AppointmentPatientMinimalSerializer(serializers.ModelSerializer):
             'id', 'full_name', 'email', 'phone',
             'gender', 'date_of_birth', 'profile_photo'
         ]
+
+    def get_profile_photo(self, obj):
+        request = self.context.get('request')
+        if obj.profile_photo and request:
+            return request.build_absolute_uri(obj.profile_photo.url)
+        return None
 
 
 class AppointmentTimeSlotMinimalSerializer(serializers.ModelSerializer):

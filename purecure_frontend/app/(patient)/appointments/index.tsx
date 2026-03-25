@@ -16,6 +16,7 @@ import {
 } from '@constants/index';
 import {
   formatDate, formatTime, formatFee, formatRating, formatDoctorName, truncate,
+  formatImageUrl,
 } from '@utils/index';
 import { Appointment } from '@/types';
 
@@ -61,11 +62,12 @@ const AppointmentCard = ({
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
       <View style={styles.cardTop}>
-        {item.doctor.profile_photo ? (
+        {formatImageUrl(item.doctor.profile_photo) ? (
           <Image 
-            source={{ uri: item.doctor.profile_photo }} 
+            source={formatImageUrl(item.doctor.profile_photo)} 
             style={styles.avatar} 
             contentFit="cover"
+            transition={200}
           />
         ) : (
           <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#FEF0F4' }]}>

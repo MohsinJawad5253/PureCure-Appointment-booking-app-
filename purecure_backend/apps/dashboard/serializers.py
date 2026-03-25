@@ -18,10 +18,17 @@ from apps.appointments.serializers import AppointmentDoctorSerializer
 
 class AgendaPatientMinimalSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
+    profile_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'full_name', 'profile_photo', 'phone', 'gender']
+
+    def get_profile_photo(self, obj):
+        request = self.context.get('request')
+        if obj.profile_photo and request:
+            return request.build_absolute_uri(obj.profile_photo.url)
+        return None
 
 
 class AgendaAppointmentSerializer(serializers.ModelSerializer):
@@ -105,6 +112,7 @@ class PatientRecordSerializer(serializers.ModelSerializer):
     visit_count = serializers.IntegerField(read_only=True)
     last_visit = serializers.DateField(read_only=True)
     upcoming_count = serializers.IntegerField(read_only=True)
+    profile_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -113,6 +121,12 @@ class PatientRecordSerializer(serializers.ModelSerializer):
             'date_of_birth', 'age', 'profile_photo',
             'visit_count', 'last_visit', 'upcoming_count'
         ]
+
+    def get_profile_photo(self, obj):
+        request = self.context.get('request')
+        if obj.profile_photo and request:
+            return request.build_absolute_uri(obj.profile_photo.url)
+        return None
 
     def get_age(self, obj):
         if not obj.date_of_birth:
@@ -179,6 +193,7 @@ class DoctorPublicProfileSerializer(serializers.ModelSerializer):
     clinic = ClinicMinimalSerializer(read_only=True)
     schedule_summary = serializers.SerializerMethodField()
     recent_reviews = serializers.SerializerMethodField()
+    profile_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = DoctorProfile
@@ -188,6 +203,12 @@ class DoctorPublicProfileSerializer(serializers.ModelSerializer):
             'bio', 'languages', 'is_available', 'profile_photo',
             'schedule_summary', 'recent_reviews'
         ]
+
+    def get_profile_photo(self, obj):
+        request = self.context.get('request')
+        if obj.profile_photo and request:
+            return request.build_absolute_uri(obj.profile_photo.url)
+        return None
 
     def get_full_name(self, obj):
         return f"Dr. {obj.user.first_name} {obj.user.last_name}"

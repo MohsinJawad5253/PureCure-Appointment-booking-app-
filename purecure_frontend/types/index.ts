@@ -126,15 +126,16 @@ export interface Appointment {
   created_at: string;
   updated_at: string;
   rescheduled_from: string | null;
-  doctor: {
-    id: string;
-    full_name: string;
-    specialty: string;
-    specialty_display: string;
-    clinic_name: string;
-    profile_photo: string | null;
-    rating: number | string;
-  };
+    doctor: {
+      id: string;
+      full_name: string;
+      specialty: string;
+      specialty_display: string;
+      clinic_name: string;
+      profile_photo: string | null;
+      rating: number | string;
+      consultation_fee: number | string;
+    };
   time_slot: Pick<TimeSlot, 'id' | 'date' | 'start_time' | 'end_time' | 'display_time'>;
 }
 

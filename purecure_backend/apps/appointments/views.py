@@ -29,7 +29,7 @@ class BookAppointmentView(APIView):
                     reason=serializer.validated_data.get('reason', ''),
                     patient_notes=serializer.validated_data.get('patient_notes', '')
                 )
-                output_serializer = AppointmentPatientSerializer(appointment)
+                output_serializer = AppointmentPatientSerializer(appointment, context={'request': request})
                 return api_response(
                     success=True,
                     message="Appointment booked successfully",
@@ -84,7 +84,7 @@ class PatientAppointmentListView(APIView):
             queryset = queryset.order_by(ordering)
             paginated_results = queryset[:50]
             
-        serializer = AppointmentPatientSerializer(paginated_results, many=True)
+        serializer = AppointmentPatientSerializer(paginated_results, many=True, context={'request': request})
         
         # Wrap in expected frontend pagination structure
         return api_response(
@@ -105,7 +105,7 @@ class PatientAppointmentDetailView(APIView):
     def get(self, request, id):
         try:
             appointment = Appointment.objects.get(id=id, patient=request.user)
-            serializer = AppointmentPatientSerializer(appointment)
+            serializer = AppointmentPatientSerializer(appointment, context={'request': request})
             return api_response(success=True, message="Appointment details", data=serializer.data)
         except Appointment.DoesNotExist:
             return api_response(success=False, message="Appointment not found", status_code=status.HTTP_404_NOT_FOUND)
@@ -126,7 +126,7 @@ class CancelAppointmentView(APIView):
                     return api_response(
                         success=True, 
                         message="Appointment cancelled", 
-                        data=AppointmentPatientSerializer(updated_appt).data
+                        data=AppointmentPatientSerializer(updated_appt, context={'request': request}).data
                     )
                 except ValueError as e:
                     return api_response(success=False, message=str(e), status_code=status.HTTP_400_BAD_REQUEST)
@@ -150,7 +150,7 @@ class RescheduleAppointmentView(APIView):
                     return api_response(
                         success=True,
                         message="Appointment rescheduled successfully",
-                        data=AppointmentPatientSerializer(new_appt).data
+                        data=AppointmentPatientSerializer(new_appt, context={'request': request}).data
                     )
                 except ValueError as e:
                     return api_response(success=False, message=str(e), status_code=status.HTTP_400_BAD_REQUEST)
@@ -210,7 +210,7 @@ class DoctorAppointmentListView(APIView):
         ordering = request.query_params.get('ordering', 'appointment_date')
         queryset = queryset.order_by(ordering, 'start_time')
         
-        serializer = AppointmentDoctorSerializer(queryset[:50], many=True)
+        serializer = AppointmentDoctorSerializer(queryset[:50], many=True, context={'request': request})
         
         return api_response(
             success=True,
@@ -230,7 +230,7 @@ class DoctorAppointmentDetailView(APIView):
     def get(self, request, id):
         try:
             appointment = Appointment.objects.get(id=id, doctor=request.user.doctor_profile)
-            serializer = AppointmentDoctorSerializer(appointment)
+            serializer = AppointmentDoctorSerializer(appointment, context={'request': request})
             return api_response(success=True, message="Appointment details", data=serializer.data)
         except Appointment.DoesNotExist:
             return api_response(success=False, message="Appointment not found", status_code=status.HTTP_404_NOT_FOUND)
@@ -248,7 +248,7 @@ class CompleteAppointmentView(APIView):
                     updated_appt = AppointmentService.complete_appointment(
                         appointment, request.user, serializer.validated_data.get('notes', '')
                     )
-                    return api_response(success=True, message="Appointment completed", data=AppointmentDoctorSerializer(updated_appt).data)
+                    return api_response(success=True, message="Appointment completed", data=AppointmentDoctorSerializer(updated_appt, context={'request': request}).data)
                 except ValueError as e:
                     return api_response(success=False, message=str(e), status_code=status.HTTP_400_BAD_REQUEST)
             return api_response(success=False, message="Invalid data", errors=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
@@ -264,7 +264,7 @@ class NoShowView(APIView):
             appointment = Appointment.objects.get(id=id, doctor=request.user.doctor_profile)
             try:
                 updated_appt = AppointmentService.mark_no_show(appointment, request.user)
-                return api_response(success=True, message="Marked as no-show", data=AppointmentDoctorSerializer(updated_appt).data)
+                return api_response(success=True, message="Marked as no-show", data=AppointmentDoctorSerializer(updated_appt, context={'request': request}).data)
             except ValueError as e:
                 return api_response(success=False, message=str(e), status_code=status.HTTP_400_BAD_REQUEST)
         except Appointment.DoesNotExist:
@@ -283,7 +283,7 @@ class DoctorCancelView(APIView):
                     updated_appt = AppointmentService.cancel_appointment(
                         appointment, request.user, serializer.validated_data.get('cancellation_reason', '')
                     )
-                    return api_response(success=True, message="Appointment cancelled by doctor", data=AppointmentDoctorSerializer(updated_appt).data)
+                    return api_response(success=True, message="Appointment cancelled by doctor", data=AppointmentDoctorSerializer(updated_appt, context={'request': request}).data)
                 except ValueError as e:
                     return api_response(success=False, message=str(e), status_code=status.HTTP_400_BAD_REQUEST)
             return api_response(success=False, message="Invalid data", errors=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
@@ -300,7 +300,7 @@ class UpdateNotesView(APIView):
             notes = request.data.get('notes', '')
             appointment.notes = notes
             appointment.save(update_fields=['notes', 'updated_at'])
-            return api_response(success=True, message="Notes updated", data=AppointmentDoctorSerializer(appointment).data)
+            return api_response(success=True, message="Notes updated", data=AppointmentDoctorSerializer(appointment, context={'request': request}).data)
         except Appointment.DoesNotExist:
             return api_response(success=False, message="Appointment not found", status_code=status.HTTP_404_NOT_FOUND)
 
