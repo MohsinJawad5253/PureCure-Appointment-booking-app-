@@ -5,8 +5,8 @@ from .models import Appointment, AppointmentReview
 
 
 class AppointmentDoctorMinimalSerializer(serializers.ModelSerializer):
-    user_id = serializers.ReadOnlyField(source='user.id')
-    full_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_id = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
     specialty_display = serializers.CharField(source='get_specialty_display', read_only=True)
     profile_photo = serializers.SerializerMethodField()
 
@@ -17,10 +17,25 @@ class AppointmentDoctorMinimalSerializer(serializers.ModelSerializer):
             'clinic_name', 'profile_photo', 'rating', 'consultation_fee'
         ]
 
+    def get_user_id(self, obj):
+        try:
+            return obj.user.id
+        except:
+            return None
+
+    def get_full_name(self, obj):
+        try:
+            return f"Dr. {obj.user.first_name} {obj.user.last_name}"
+        except:
+            return "Dr. Unknown"
+
     def get_profile_photo(self, obj):
         request = self.context.get('request')
         if obj.profile_photo and request:
-            return request.build_absolute_uri(obj.profile_photo.url)
+            try:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            except:
+                return obj.profile_photo.url
         return None
 
 

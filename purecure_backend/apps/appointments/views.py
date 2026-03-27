@@ -346,3 +346,126 @@ class AppointmentStatsView(APIView):
                 "total_reviews": doctor_profile.review_count
             }
         )
+
+class BulkCancelPreviewView(APIView):
+    """
+    Preview which appointments will be cancelled
+    before confirming bulk cancel.
+    GET /api/appointments/doctor/bulk-cancel/preview/
+    Query params: date, start_time, end_time
+    """
+    permission_classes = [permissions.IsAuthenticated, IsDoctor]
+
+    def get(self, request):
+        date = request.query_params.get('date')
+        start_time = request.query_params.get('start_time')
+        end_time = request.query_params.get('end_time')
+
+        if not all([date, start_time, end_time]):
+            return api_response(
+                success=False,
+                message='date, start_time and end_time are required',
+                status_code=400,
+            )
+
+        try:
+            doctor_profile = request.user.doctor_profile
+        except AttributeError:
+            return api_response(
+                success=False,
+                message='Doctor profile not found',
+                status_code=404,
+            )
+
+        preview = AppointmentService.preview_bulk_cancel(
+            doctor_profile=doctor_profile,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        return api_response(
+            success=True,
+            message=f'{len(preview)} appointments will be cancelled',
+            data={
+                'date': date,
+                'start_time': start_time,
+                'end_time': end_time,
+                'affected_count': len(preview),
+                'appointments': preview,
+            },
+        )
+
+
+class BulkCancelView(APIView):
+    """
+    Cancel all appointments in a time range.
+    POST /api/appointments/doctor/bulk-cancel/
+    Body: { date, start_time, end_time, reason }
+    """
+    permission_classes = [permissions.IsAuthenticated, IsDoctor]
+
+    def post(self, request):
+        date = request.data.get('date')
+        start_time = request.data.get('start_time')
+        end_time = request.data.get('end_time')
+        reason = request.data.get(
+            'reason',
+            'Doctor unavailable for this time period'
+        )
+
+        if not all([date, start_time, end_time]):
+            return api_response(
+                success=False,
+                message='date, start_time and end_time are required',
+                status_code=400,
+            )
+
+        # Validate time range
+        if start_time >= end_time:
+            return api_response(
+                success=False,
+                message='end_time must be after start_time',
+                status_code=400,
+            )
+
+        # Validate date is not in the past
+        from django.utils import timezone
+        from datetime import datetime
+        try:
+            appt_date = datetime.strptime(date, '%Y-%m-%d').date()
+            if appt_date < timezone.now().date():
+                return api_response(
+                    success=False,
+                    message='Cannot cancel appointments in the past',
+                    status_code=400,
+                )
+        except ValueError:
+            return api_response(
+                success=False,
+                message='Invalid date format. Use YYYY-MM-DD',
+                status_code=400,
+            )
+
+        try:
+            doctor_profile = request.user.doctor_profile
+        except AttributeError:
+            return api_response(
+                success=False,
+                message='Doctor profile not found',
+                status_code=404,
+            )
+
+        result = AppointmentService.bulk_cancel_appointments(
+            doctor_profile=doctor_profile,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+            reason=reason,
+        )
+
+        return api_response(
+            success=True,
+            message=result['message'],
+            data=result,
+        )

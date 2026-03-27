@@ -15,6 +15,7 @@ import {
 } from '@constants/index';
 import { getInitials } from '@utils/index';
 import { AppointmentDoctor } from '@types/index';
+import BulkCancelModal from './components/BulkCancelModal';
 
 const SkeletonCard = () => {
   const opacity = useRef(new Animated.Value(0.3)).current;
@@ -45,6 +46,7 @@ export default function DoctorDailyAgenda() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [showBulkCancel, setShowBulkCancel] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -269,6 +271,24 @@ export default function DoctorDailyAgenda() {
         </View>
       </View>
 
+      {/* QUICK ACTIONS */}
+      <View style={styles.quickActionsContainer}>
+        <TouchableOpacity 
+          style={styles.bulkCancelTrigger}
+          onPress={() => setShowBulkCancel(true)}
+        >
+          <Ionicons name="calendar-outline" size={16} color={COLORS.danger} />
+          <Text style={styles.bulkCancelTriggerText}>Cancel Range</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.quickActionDivider} />
+        
+        <TouchableOpacity style={styles.quickActionBtn}>
+          <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.quickActionBtnText}>Add Slot</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* WEEK STRIP */}
       <View style={styles.weekStripContainer}>
         <ScrollView 
@@ -358,6 +378,22 @@ export default function DoctorDailyAgenda() {
           </View>
         )}
       />
+
+      {/* BULK CANCEL MODAL */}
+      <BulkCancelModal
+        visible={showBulkCancel}
+        selectedDate={selectedDate}
+        onClose={() => setShowBulkCancel(false)}
+        onSuccess={() => {
+          setShowBulkCancel(false);
+          fetchData(selectedDate);
+          Toast.show({
+            type: 'success',
+            text1: 'Bulk Cancellation Successful',
+            text2: 'Affected appointments have been cancelled.',
+          });
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -403,6 +439,43 @@ const styles = StyleSheet.create({
   availabilityText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  bulkCancelTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  bulkCancelTriggerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.danger,
+  },
+  quickActionDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: COLORS.border,
+    marginHorizontal: SPACING.lg,
+  },
+  quickActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  quickActionBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   weekStripContainer: {
     backgroundColor: COLORS.white,

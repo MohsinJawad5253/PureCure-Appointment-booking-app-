@@ -285,3 +285,173 @@ class AppointmentService:
         )
 
         return review
+    @staticmethod
+    @transaction.atomic
+    def bulk_cancel_appointments(
+        doctor_profile,
+        date: str,
+        start_time: str,
+        end_time: str,
+        reason: str = 'Doctor unavailable for this time period',
+    ) -> dict:
+        """
+        Cancel all upcoming appointments for a doctor
+        within a specific date and time range.
+        """
+        import logging
+        from django.utils import timezone as tz
+        logger = logging.getLogger(__name__)
+
+        logger.info(
+            f'bulk_cancel_appointments called: '
+            f'doctor={doctor_profile.user.email}, '
+            f'date={date}, '
+            f'start_time={start_time}, '
+            f'end_time={end_time}'
+        )
+
+        # Find all UPCOMING appointments for this doctor
+        # on the given date within the time range
+        appointments_to_cancel = Appointment.objects.filter(
+            doctor=doctor_profile,
+            appointment_date=date,
+            start_time__gte=start_time,
+            start_time__lte=end_time,
+            status__in=['upcoming', 'in_progress'],
+        ).select_related(
+            'patient',
+            'time_slot',
+            'doctor__user',
+        ).order_by('start_time')
+
+        total_found = appointments_to_cancel.count()
+        logger.info(f'Found {total_found} appointments to cancel')
+
+        if total_found == 0:
+            return {
+                'cancelled_count': 0,
+                'notified_count': 0,
+                'failed_notifications': 0,
+                'cancelled_appointments': [],
+                'skipped': 0,
+                'message': 'No upcoming appointments found in this time range',
+            }
+
+        cancelled_appointments = []
+        notified_count = 0
+        failed_notifications = 0
+
+        for appointment in appointments_to_cancel:
+            try:
+                # Free the time slot
+                slot = appointment.time_slot
+                slot.status = 'available'
+                slot.save(update_fields=['status', 'updated_at'])
+
+                # Cancel the appointment
+                appointment.status = 'cancelled_by_doctor'
+                appointment.cancellation_reason = reason
+                appointment.cancelled_at = tz.now()
+                appointment.cancelled_by = doctor_profile.user
+                appointment.save(update_fields=[
+                    'status',
+                    'cancellation_reason',
+                    'cancelled_at',
+                    'cancelled_by',
+                    'updated_at',
+                ])
+
+                cancelled_appointments.append({
+                    'id': str(appointment.id),
+                    'patient_name': appointment.patient.get_full_name(),
+                    'patient_email': appointment.patient.email,
+                    'time': str(appointment.start_time),
+                    'had_push_token': bool(appointment.patient.push_token),
+                })
+
+                # Send push notification to patient
+                try:
+                    from apps.users.push_notifications import (
+                        send_appointment_cancelled_by_doctor
+                    )
+                    notification_sent = send_appointment_cancelled_by_doctor(
+                        appointment
+                    )
+                    if notification_sent:
+                        notified_count += 1
+                        logger.info(
+                            f'Notified patient {appointment.patient.email}'
+                        )
+                    else:
+                        failed_notifications += 1
+                        logger.warning(
+                            f'Failed to notify {appointment.patient.email}'
+                            f' — no push token or error'
+                        )
+                except Exception as notif_err:
+                    failed_notifications += 1
+                    logger.error(
+                        f'Notification error for {appointment.patient.email}:'
+                        f' {notif_err}'
+                    )
+
+            except Exception as appt_err:
+                logger.error(
+                    f'Failed to cancel appointment {appointment.id}:'
+                    f' {appt_err}'
+                )
+
+        logger.info(
+            f'Bulk cancel complete: '
+            f'cancelled={len(cancelled_appointments)}, '
+            f'notified={notified_count}, '
+            f'failed_notifications={failed_notifications}'
+        )
+
+        return {
+            'cancelled_count': len(cancelled_appointments),
+            'notified_count': notified_count,
+            'failed_notifications': failed_notifications,
+            'cancelled_appointments': cancelled_appointments,
+            'skipped': total_found - len(cancelled_appointments),
+            'message': (
+                f'{len(cancelled_appointments)} appointments cancelled. '
+                f'{notified_count} patients notified.'
+            ),
+        }
+
+    @staticmethod
+    def preview_bulk_cancel(
+        doctor_profile,
+        date: str,
+        start_time: str,
+        end_time: str,
+    ) -> list:
+        """
+        Preview which appointments would be cancelled
+        without actually cancelling them.
+        Returns list of appointment data.
+        """
+        appointments = Appointment.objects.filter(
+            doctor=doctor_profile,
+            appointment_date=date,
+            start_time__gte=start_time,
+            start_time__lte=end_time,
+            status__in=['upcoming', 'in_progress'],
+        ).select_related('patient').order_by('start_time')
+
+        return [
+            {
+                'id': str(a.id),
+                'patient_name': a.patient.get_full_name(),
+                'patient_email': a.patient.email,
+                'start_time': str(a.start_time),
+                'end_time': str(a.end_time),
+                'display_time': a.start_time.strftime(
+                    '%I:%M %p'
+                ).lstrip('0'),
+                'reason': a.reason or 'No reason specified',
+                'has_push_token': bool(a.patient.push_token),
+            }
+            for a in appointments
+        ]

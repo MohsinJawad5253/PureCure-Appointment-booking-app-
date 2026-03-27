@@ -13,6 +13,8 @@ urlpatterns = [
     # Doctor endpoints
     path('doctor/', views.DoctorAppointmentListView.as_view()),
     path('doctor/stats/', views.AppointmentStatsView.as_view()),
+    path('doctor/bulk-cancel/preview/', views.BulkCancelPreviewView.as_view()),
+    path('doctor/bulk-cancel/', views.BulkCancelView.as_view()),
     path('doctor/<uuid:id>/', views.DoctorAppointmentDetailView.as_view()),
     path('doctor/<uuid:id>/complete/', views.CompleteAppointmentView.as_view()),
     path('doctor/<uuid:id>/no-show/', views.NoShowView.as_view()),

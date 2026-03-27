@@ -24,12 +24,18 @@ class DoctorListSerializer(serializers.ModelSerializer):
         ]
 
     def get_full_name(self, obj):
-        return f"Dr. {obj.user.first_name} {obj.user.last_name}"
+        try:
+            return f"Dr. {obj.user.first_name} {obj.user.last_name}"
+        except:
+            return "Dr. Unknown"
 
     def get_profile_photo(self, obj):
         request = self.context.get('request')
         if obj.profile_photo and request:
-            return request.build_absolute_uri(obj.profile_photo.url)
+            try:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            except:
+                return obj.profile_photo.url
         return None
 
 class DoctorDetailSerializer(DoctorListSerializer):
