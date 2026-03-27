@@ -15,7 +15,7 @@ import {
 } from '@constants/index';
 import { getInitials } from '@utils/index';
 import { AppointmentDoctor } from '@types/index';
-import BulkCancelModal from './components/BulkCancelModal';
+import BulkCancelModal from '@/components/BulkCancelModal';
 
 const SkeletonCard = () => {
   const opacity = useRef(new Animated.Value(0.3)).current;
@@ -279,13 +279,6 @@ export default function DoctorDailyAgenda() {
         >
           <Ionicons name="calendar-outline" size={16} color={COLORS.danger} />
           <Text style={styles.bulkCancelTriggerText}>Cancel Range</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.quickActionDivider} />
-        
-        <TouchableOpacity style={styles.quickActionBtn}>
-          <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.quickActionBtnText}>Add Slot</Text>
         </TouchableOpacity>
       </View>
 
