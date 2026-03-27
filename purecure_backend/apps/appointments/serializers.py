@@ -5,7 +5,9 @@ from .models import Appointment, AppointmentReview
 
 
 class AppointmentDoctorMinimalSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source='user.id')
     full_name = serializers.CharField(source='user.full_name', read_only=True)
+    specialty_display = serializers.CharField(source='get_specialty_display', read_only=True)
     profile_photo = serializers.SerializerMethodField()
 
     class Meta:
