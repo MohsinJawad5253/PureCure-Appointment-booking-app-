@@ -35,6 +35,7 @@ class ClinicAdminLoginView(APIView):
             # Special auto-create logic for City Health Center demo
             if email == 'admin2@cityhealth.com':
                 user = User.objects.create_user(
+                    username=email,
                     email=email,
                     password=password,
                     first_name="Center",
