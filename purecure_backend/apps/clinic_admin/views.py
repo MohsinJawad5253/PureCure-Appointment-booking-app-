@@ -758,20 +758,27 @@ class ClinicReportDataView(APIView):
             ).order_by('day')
         )
 
-        # Top patients: count only appointments in this clinic + date range
-        in_range_appt = Q(
-            appointments__doctor__clinic=clinic,
-            appointments__appointment_date__gte=date_from,
-            appointments__appointment_date__lte=date_to,
+        # Top patients: derive from `appts` only. A User + Count(..., filter=Q(...))
+        # pattern can trigger SQLite OperationalError ("user-defined function raised
+        # exception") on some Django / Python / SQLite combinations.
+        top_rows = list(
+            appts.values('patient_id')
+            .annotate(visits=Count('id'))
+            .order_by('-visits')[:10]
         )
-        top_patients = list(
-            User.objects.filter(in_range_appt).annotate(
-                visits=Count(
-                    'appointments',
-                    filter=in_range_appt,
-                )
-            ).order_by('-visits').distinct()[:10]
-        )
+        patient_ids_ranked = [r['patient_id'] for r in top_rows]
+        visits_by_patient = {r['patient_id']: r['visits'] for r in top_rows}
+        users_bulk = User.objects.in_bulk(patient_ids_ranked)
+        top_patients = []
+        for pid in patient_ids_ranked:
+            u = users_bulk.get(pid)
+            if u is None:
+                continue
+            top_patients.append({
+                'name': u.get_full_name(),
+                'email': u.email,
+                'visits': visits_by_patient[pid],
+            })
 
         # All appointment details for report table
         appt_details = []
@@ -858,14 +865,7 @@ class ClinicReportDataView(APIView):
                     }
                     for d in daily
                 ],
-                'top_patients': [
-                    {
-                        'name': p.get_full_name(),
-                        'email': p.email,
-                        'visits': p.visits,
-                    }
-                    for p in top_patients
-                ],
+                'top_patients': top_patients,
                 'rating_breakdown': rating_breakdown,
                 'appointment_details': appt_details,
             },
