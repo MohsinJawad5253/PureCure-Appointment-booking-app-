@@ -77,7 +77,7 @@ export default function PatientTabLayout() {
       <Tabs.Screen name="appointments/[id]/index" options={{ href: null }} />
       <Tabs.Screen name="appointments/[id]/reschedule" options={{ href: null }} />
       <Tabs.Screen name="appointments/[id]/review" options={{ href: null }} />
-      <Tabs.Screen name="appointments/[id]" options={{ href: null }} />
+      <Tabs.Screen name="notifications/index" options={{ href: null }} />
     </Tabs>
   );
 }

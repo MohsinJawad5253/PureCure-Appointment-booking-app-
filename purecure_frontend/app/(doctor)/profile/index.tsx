@@ -77,7 +77,10 @@ export default function DoctorProfile() {
 
       {/* Menu Items */}
       <View style={styles.menuCard}>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push('/shared/edit-profile')}
+        >
           <View style={styles.menuLeft}>
             <View style={[styles.menuIcon, { backgroundColor: COLORS.infoLight }]}>
               <Ionicons name="person-outline" size={18} color={COLORS.info} />
@@ -89,7 +92,10 @@ export default function DoctorProfile() {
 
         <View style={styles.divider} />
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push('/shared/change-password')}
+        >
           <View style={styles.menuLeft}>
             <View style={[styles.menuIcon, { backgroundColor: COLORS.successLight }]}>
               <Ionicons name="lock-closed-outline" size={18} color={COLORS.success} />
@@ -103,7 +109,7 @@ export default function DoctorProfile() {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => router.push('/(doctor)/notifications/index')}
+          onPress={() => router.push('/(doctor)/notifications')}
         >
           <View style={styles.menuLeft}>
             <View style={[styles.menuIcon, { backgroundColor: COLORS.warningLight }]}>
@@ -118,7 +124,7 @@ export default function DoctorProfile() {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => router.push('/(doctor)/schedule/index')}
+          onPress={() => router.push('/(doctor)/schedule')}
         >
           <View style={styles.menuLeft}>
             <View style={[styles.menuIcon, { backgroundColor: '#EDE9FE' }]}>
@@ -326,14 +332,6 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
   },
   scrollContent: {
-  paddingBottom: 40,
-},
-header: {
-  paddingHorizontal: SPACING.xl,
-  paddingTop: SPACING.md,
-  paddingBottom: SPACING.lg,
-  backgroundColor: COLORS.white,
-  borderBottomWidth: 0.5,
-  borderBottomColor: COLORS.border,
-},
+    paddingBottom: 40,
+  },
 });

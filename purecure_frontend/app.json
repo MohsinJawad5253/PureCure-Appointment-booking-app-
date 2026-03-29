@@ -37,6 +37,13 @@
           "color": "#E8184A",
           "sounds": []
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PureCure needs access to your photos to update your profile picture.",
+          "cameraPermission": "PureCure needs camera access to take a profile photo."
+        }
       ]
     ],
     "scheme": "purecure",

@@ -45,9 +45,8 @@ export const formatFee = (fee: any): string => {
 };
 
 export const formatDoctorName = (fullName: string): string => {
-  // Remove duplicate "Dr." prefix if backend already includes it
-  const cleaned = fullName.replace(/^Dr\.\s*/i, '');
-  return `Dr. ${cleaned}`;
+  // Backend already returns name with "Dr." prefix
+  return fullName || '';
 };
 
 export const getInitials = (name: string): string => {

@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/timeslots/', include('apps.timeslots.urls')),
     path('api/appointments/', include('apps.appointments.urls')),
     path('api/dashboard/', include('apps.dashboard.urls')),
+    path('api/clinic-admin/', include('apps.clinic_admin.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -71,6 +71,9 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(patient)" />
           <Stack.Screen name="(doctor)" />
+          <Stack.Screen name="shared/edit-profile" />
+          <Stack.Screen name="shared/change-password" />
+          <Stack.Screen name="index" />
         </Stack>
         <Toast config={toastConfig} />
       </SafeAreaProvider>

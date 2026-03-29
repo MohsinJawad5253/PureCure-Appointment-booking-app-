@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'apps.timeslots',
     'apps.appointments',
     'apps.dashboard',
+    'apps.clinic_admin',
 ]
 
 MIDDLEWARE = [

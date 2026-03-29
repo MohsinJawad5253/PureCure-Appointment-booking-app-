@@ -46,6 +46,7 @@ export default function DoctorDailyAgenda() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [notifCount, setNotifCount] = useState(0);
   const [showBulkCancel, setShowBulkCancel] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -53,13 +54,17 @@ export default function DoctorDailyAgenda() {
   const fetchData = async (date: string) => {
     setLoading(true);
     try {
-      const [agenda, week] = await Promise.all([
+      const [agenda, week, notifRes] = await Promise.all([
         dashboardService.dailyAgenda(date),
         dashboardService.weekAgenda(),
+        dashboardService.notifications().catch(() => ({ data: { unread_count: 0 } })),
       ]);
       setAgendaData(agenda);
       setWeekData(week.week ?? week);
       setIsAvailable(agenda.profile?.is_available ?? isAvailable);
+      
+      const notifs = notifRes?.data ?? notifRes;
+      setNotifCount(notifs?.unread_count ?? 0);
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Failed to load schedule' });
     } finally {
@@ -257,8 +262,18 @@ export default function DoctorDailyAgenda() {
           <Text style={styles.headerSubtitle}>{dateFormatted}</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => router.push('/(doctor)/notifications/index')}>
+          <TouchableOpacity 
+            onPress={() => router.push('/(doctor)/notifications')}
+            style={{ position: 'relative' }}
+          >
             <Ionicons name="notifications-outline" size={24} color={COLORS.textPrimary} />
+            {notifCount > 0 && (
+              <View style={styles.badgePillSmall}>
+                <Text style={styles.badgeTextSmall}>
+                  {notifCount > 9 ? '9+' : notifCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.availabilityPill, isAvailable ? styles.bgOnline : styles.bgOffline]}
@@ -355,7 +370,7 @@ export default function DoctorDailyAgenda() {
 
       {/* APPOINTMENT LIST */}
       <FlatList
-        data={loading ? [1, 2, 3] : appointmentsToDisplay}
+        data={loading ? ([1, 2, 3] as any[]) : appointmentsToDisplay}
         keyExtractor={(item, index) => loading ? index.toString() : (item as AppointmentDoctor).id}
         renderItem={({ item }) => loading ? <SkeletonCard /> : renderAppointmentCard({ item: item as AppointmentDoctor })}
         contentContainerStyle={{ paddingHorizontal: SPACING.lg, paddingBottom: 100, paddingTop: SPACING.md }}
@@ -702,5 +717,22 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textAlign: 'center',
     marginTop: 4,
+  },
+  badgePillSmall: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeTextSmall: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontWeight: '700',
   },
 });

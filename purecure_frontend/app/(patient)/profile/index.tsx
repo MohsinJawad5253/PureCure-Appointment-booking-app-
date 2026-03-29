@@ -1,154 +1,203 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  Alert, ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@store/authStore';
-import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOW } from '@constants/index';
+import { appointmentService } from '@services/appointmentService';
+import {
+  COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOW
+} from '@constants/index';
+import { getInitials, formatDate } from '@utils/index';
 
 // ─── Internal Components ────────────────────────────────────────
 
-const ProfileMenuItem = ({ icon, label, sublabel, onPress, isDestructive = false }: any) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <View style={[styles.menuIconContainer, isDestructive && { backgroundColor: '#FEE2E2' }]}>
-      <Ionicons name={icon} size={22} color={isDestructive ? '#DC2626' : COLORS.primary} />
+const InfoRow = ({ icon, text, isLast = false }: { icon: any; text: string; isLast?: boolean }) => (
+  <View style={[styles.infoRow, isLast && { borderBottomWidth: 0 }]}>
+    <Ionicons name={icon} size={18} color={COLORS.textSecondary} />
+    <Text style={styles.infoText}>{text || 'Not set'}</Text>
+  </View>
+);
+
+const MenuRow = ({ icon, label, color, onPress, isLast = false }: any) => (
+  <TouchableOpacity 
+    style={[styles.menuRow, isLast && { borderBottomWidth: 0 }]} 
+    onPress={onPress}
+  >
+    <View style={[styles.menuIconBox, { backgroundColor: `${color}15` }]}>
+      <Ionicons name={icon} size={20} color={color} />
     </View>
-    <View style={styles.menuTextContent}>
-      <Text style={[styles.menuLabel, isDestructive && { color: '#DC2626' }]}>{label}</Text>
-      {sublabel && <Text style={styles.menuSublabel}>{sublabel}</Text>}
-    </View>
+    <Text style={styles.menuLabelText}>{label}</Text>
     <Ionicons name="chevron-forward" size={18} color={COLORS.border} />
   </TouchableOpacity>
+);
+
+const StatCard = ({ count, label }: { count: number; label: string }) => (
+  <View style={styles.statCard}>
+    <Text style={styles.statCount}>{count}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
 );
 
 // ─── Main Screen ───────────────────────────────────────────────
 
 export default function PatientProfileScreen() {
-  const router = useRouter();
   const { user, logout } = useAuthStore();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [upcomingCount, setUpcomingCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [upcoming, completed] = await Promise.all([
+          appointmentService.myList({ status: 'upcoming', page: 1 }),
+          appointmentService.myList({ status: 'completed', page: 1 }),
+        ]);
+        // Handle both response shapes (paginated vs array)
+        setUpcomingCount(upcoming?.data?.count ?? upcoming?.count ?? 0);
+        setCompletedCount(completed?.data?.count ?? completed?.count ?? 0);
+      } catch {
+        // Silently fail — counts are not critical
+      }
+    };
+    fetchCounts();
+  }, []);
 
   const handleLogout = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      'Logout',
+      'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive', 
+        {
+          text: 'Logout',
+          style: 'destructive',
           onPress: async () => {
-            await logout();
-            router.replace('/(auth)');
-          } 
+            setLoggingOut(true);
+            try {
+              await logout();
+              router.replace('/(auth)');
+            } catch {
+              setLoggingOut(false);
+            }
+          },
         },
       ]
     );
   };
 
-  const initials = user?.first_name?.[0] || 'U';
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* HEADER / HERO */}
-        <View style={styles.profileHero}>
-          <View style={styles.avatarContainer}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Profile</Text>
+      </View>
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* PROFILE CARD */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarWrapper}>
             {user?.profile_photo ? (
               <Image source={{ uri: user.profile_photo }} style={styles.avatar} />
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitials}>{initials}</Text>
+              <View style={styles.initialsAvatar}>
+                <Text style={styles.initialsText}>{getInitials(user?.full_name || 'U')}</Text>
               </View>
             )}
-            <TouchableOpacity style={styles.editAvatarBtn}>
-              <Ionicons name="camera" size={16} color="#fff" />
-            </TouchableOpacity>
           </View>
-          <Text style={styles.userName}>{user?.full_name}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
           
-          <TouchableOpacity style={styles.editProfileBtn}>
-            <Text style={styles.editProfileBtnText}>Edit Profile</Text>
-          </TouchableOpacity>
-        </View>
+          <Text style={styles.userName}>{user?.full_name}</Text>
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleText}>Patient</Text>
+          </View>
 
-        {/* ACCOUNT SETTINGS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Settings</Text>
-          <View style={styles.menuCard}>
-            <ProfileMenuItem 
-              icon="person-outline" 
-              label="Personal Information" 
-              sublabel="Name, Email, Phone"
-              onPress={() => {}} 
-            />
-            <ProfileMenuItem 
-              icon="notifications-outline" 
-              label="Notifications" 
-              sublabel="Appointment reminders, offers"
-              onPress={() => {}} 
-            />
-            <ProfileMenuItem 
-              icon="shield-checkmark-outline" 
-              label="Security & Privacy" 
-              sublabel="Password, HIPAA settings"
-              onPress={() => {}} 
+          <View style={styles.infoContainer}>
+            <InfoRow icon="mail-outline" text={user?.email || ''} />
+            <InfoRow icon="call-outline" text={user?.phone || ''} />
+            <InfoRow icon="calendar-outline" text={user?.date_of_birth ? formatDate(user.date_of_birth) : ''} />
+            <InfoRow 
+              icon={user?.gender === 'female' ? 'female-outline' : 'male-outline'} 
+              text={user?.gender ? (user.gender.charAt(0).toUpperCase() + user.gender.slice(1)) : ''} 
+              isLast 
             />
           </View>
         </View>
 
-        {/* MEDICAL HISTORY */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Medical Records</Text>
-          <View style={styles.menuCard}>
-            <ProfileMenuItem 
-              icon="medical-outline" 
-              label="My Consultations" 
-              onPress={() => router.push('/(patient)/appointments')} 
-            />
-            <ProfileMenuItem 
-              icon="document-text-outline" 
-              label="Prescriptions" 
-              onPress={() => {}} 
-            />
-            <ProfileMenuItem 
-              icon="heart-outline" 
-              label="Favorite Doctors" 
-              onPress={() => {}} 
-            />
+        {/* MENU CARD */}
+        <View style={styles.menuCard}>
+          <MenuRow 
+            icon="person-outline" 
+            label="Edit Profile" 
+            color="#3B82F6" 
+            onPress={() => router.push('/shared/edit-profile')} 
+          />
+          <MenuRow 
+            icon="lock-closed-outline" 
+            label="Change Password" 
+            color="#10B981" 
+            onPress={() => router.push('/shared/change-password')} 
+          />
+          <MenuRow 
+            icon="calendar-outline" 
+            label="My Appointments" 
+            color="#8B5CF6" 
+            onPress={() => router.push('/(patient)/appointments')} 
+          />
+          <MenuRow 
+            icon="star-outline" 
+            label="My Reviews" 
+            color="#F59E0B" 
+            isLast 
+            onPress={() => router.push({ pathname: '/(patient)/appointments', params: { tab: 'completed' } })} 
+          />
+        </View>
+
+        {/* STATS ROW */}
+        <View style={styles.statsRow}>
+          <StatCard count={upcomingCount} label="Upcoming" />
+          <StatCard count={completedCount} label="Completed" />
+          <StatCard count={user?.reviews_count || 0} label="Reviews" />
+        </View>
+
+        {/* APP INFO */}
+        <View style={styles.appInfo}>
+          <Text style={styles.appName}>PureCure</Text>
+          <Text style={styles.appVersion}>Version 1.0.0</Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.badge}>
+              <Ionicons name="shield-checkmark" size={12} color={COLORS.textSecondary} />
+              <Text style={styles.badgeText}>HIPAA Compliant</Text>
+            </View>
+            <View style={styles.badge}>
+              <Ionicons name="lock-closed" size={12} color={COLORS.textSecondary} />
+              <Text style={styles.badgeText}>SSL Secure</Text>
+            </View>
           </View>
         </View>
 
-        {/* SUPPORT & LEGAL */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          <View style={styles.menuCard}>
-            <ProfileMenuItem 
-              icon="help-circle-outline" 
-              label="Help Center" 
-              onPress={() => {}} 
-            />
-            <ProfileMenuItem 
-              icon="information-circle-outline" 
-              label="Terms & Conditions" 
-              onPress={() => {}} 
-            />
-            <ProfileMenuItem 
-              icon="log-out-outline" 
-              label="Sign Out" 
-              isDestructive
-              onPress={handleLogout} 
-            />
-          </View>
-        </View>
-
-        <View style={styles.footerInfo}>
-          <Text style={styles.versionText}>PureCure v1.0.0</Text>
-          <Text style={styles.copyText}>© 2024 PureCure Healthcare</Text>
-        </View>
+        {/* LOGOUT BUTTON */}
+        <TouchableOpacity 
+          style={styles.logoutBtn} 
+          onPress={handleLogout}
+          disabled={loggingOut}
+        >
+          {loggingOut ? (
+            <ActivityIndicator size="small" color={COLORS.danger} />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
+              <Text style={styles.logoutText}>Logout</Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -161,132 +210,182 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  profileHero: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xxl,
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    ...SHADOW.sm,
+  header: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.white,
   },
-  avatarContainer: {
-    position: 'relative',
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  scrollContent: {
+    padding: SPACING.lg,
+  },
+  profileCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: 20,
+    alignItems: 'center',
+    ...SHADOW.md,
     marginBottom: SPACING.lg,
   },
+  avatarWrapper: {
+    marginBottom: SPACING.md,
+  },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FEF0F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
-  editAvatarBtn: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  initialsAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
+  },
+  initialsText: {
+    color: COLORS.white,
+    fontSize: 32,
+    fontWeight: '700',
   },
   userName: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.textPrimary,
+    marginBottom: 6,
   },
-  userEmail: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  editProfileBtn: {
-    marginTop: SPACING.lg,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+  roleBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
+    marginBottom: 20,
   },
-  editProfileBtnText: {
-    color: COLORS.primary,
-    fontWeight: '700',
-    fontSize: 14,
+  roleText: {
+    color: '#3B82F6',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  section: {
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl,
+  infoContainer: {
+    width: '100%',
+    gap: 12,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: SPACING.md,
-    marginLeft: 4,
-  },
-  menuCard: {
-    backgroundColor: '#fff',
-    borderRadius: BORDER_RADIUS.xl,
-    paddingHorizontal: SPACING.md,
-    ...SHADOW.sm,
-  },
-  menuItem: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    gap: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F3F4F6',
   },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FEF0F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.md,
-  },
-  menuTextContent: {
+  infoText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
     flex: 1,
   },
-  menuLabel: {
-    fontSize: 16,
+  menuCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
+    ...SHADOW.md,
+    marginBottom: SPACING.lg,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F3F4F6',
+  },
+  menuIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  menuLabelText: {
+    flex: 1,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
-  menuSublabel: {
-    fontSize: 12,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xl,
+    gap: SPACING.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: 12,
+    alignItems: 'center',
+    ...SHADOW.sm,
+  },
+  statCount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  statLabel: {
+    fontSize: 11,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  footerInfo: {
+  appInfo: {
     alignItems: 'center',
-    marginTop: SPACING.xxl,
-    gap: 4,
+    marginBottom: SPACING.xl,
   },
-  versionText: {
-    fontSize: 12,
+  appName: {
+    fontSize: 16,
     fontWeight: '700',
-    color: COLORS.border,
+    color: COLORS.primary,
+    marginBottom: 2,
   },
-  copyText: {
+  appVersion: {
     fontSize: 12,
-    color: COLORS.border,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  badgeText: {
+    fontSize: 10,
+    color: COLORS.textSecondary,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    borderRadius: BORDER_RADIUS.lg,
+    height: 50,
+    marginBottom: 20,
+  },
+  logoutText: {
+    color: COLORS.danger,
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

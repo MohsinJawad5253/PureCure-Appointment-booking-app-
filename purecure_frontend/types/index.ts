@@ -14,6 +14,14 @@ export interface User {
   date_of_birth: string | null;
   is_profile_complete: boolean;
   created_at: string;
+  // Physician specific
+  bio?: string;
+  consultation_fee?: number | string;
+  languages?: string[];
+  specialty?: string;
+  experience?: number;
+  is_available?: boolean;
+  reviews_count?: number;
 }
 
 export interface AuthTokens {

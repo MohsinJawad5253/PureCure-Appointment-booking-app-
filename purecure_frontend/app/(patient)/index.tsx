@@ -73,12 +73,13 @@ export default function PatientHomeScreen() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [topDoctors, setTopDoctors] = useState<Doctor[]>([]);
   const [upcomingAppointment, setUpcomingAppointment] = useState<Appointment | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchHomeData = async () => {
     try {
-      const [clinicsRes, doctorsRes, apptRes] = await Promise.all([
+      const [clinicsRes, doctorsRes, apptRes, cancelledRes] = await Promise.all([
         clinicService.topRated().catch(err => {
           console.error('[HomeData] Clinics fetch error:', err);
           return [];
@@ -91,11 +92,21 @@ export default function PatientHomeScreen() {
           console.error('[HomeData] Appointments fetch error:', err);
           return { data: { results: [] } } as any;
         }),
+        appointmentService.myList({ status: 'cancelled_by_doctor', page: 1 }).catch(err => {
+          console.error('[HomeData] Cancelled fetch error:', err);
+          return { data: { count: 0 } } as any;
+        }),
       ]);
 
       setClinics(clinicsRes);
       setTopDoctors(doctorsRes);
       setUpcomingAppointment(apptRes?.data?.results?.[0] ?? null);
+      
+      const cancelledCount = 
+        cancelledRes?.data?.count ?? 
+        cancelledRes?.data?.data?.count ?? 
+        cancelledRes?.count ?? 0;
+      setUnreadCount(cancelledCount);
     } catch (e) {
       console.error('[HomeData] Unexpected error:', e);
       Toast.show({ type: 'error', text1: 'Failed to load home data' });
@@ -143,8 +154,18 @@ export default function PatientHomeScreen() {
             <Text style={styles.subtitle}>Find your doctor today</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity 
+              onPress={() => router.push('/(patient)/notifications')}
+              style={[styles.iconButton, { position: 'relative' }]}
+            >
               <Ionicons name="notifications-outline" size={24} color={COLORS.textPrimary} />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <Avatar photo={user?.profile_photo || null} name={`${user?.first_name} ${user?.last_name}`} />
           </View>
@@ -334,6 +355,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOW.sm,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontWeight: '700',
   },
   searchBar: {
     flexDirection: 'row',
