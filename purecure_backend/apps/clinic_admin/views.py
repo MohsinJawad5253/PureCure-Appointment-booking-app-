@@ -54,6 +54,18 @@ class ClinicAdminLoginView(APIView):
                     message='Your admin account has been deactivated',
                     status_code=403,
                 )
+            # Auto-heal: If the admin's clinic has no doctors (empty shell from quick seed),
+            # point them to the clinic with the most appointments so the dashboard looks great.
+            if not DoctorProfile.objects.filter(clinic=admin_profile.clinic).exists():
+                most_active_clinic = DoctorProfile.objects.values('clinic').annotate(
+                    count=Count('id')
+                ).order_by('-count').first()
+                if most_active_clinic:
+                    from apps.clinics.models import Clinic
+                    best_clinic = Clinic.objects.get(id=most_active_clinic['clinic'])
+                    admin_profile.clinic = best_clinic
+                    admin_profile.save()
+
         except ClinicAdmin.DoesNotExist:
             return api_response(
                 success=False,

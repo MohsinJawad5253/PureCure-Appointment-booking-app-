@@ -35,5 +35,5 @@ export const clinicApi = {
   reportData: (params: {
     date_from: string;
     date_to: string;
-  }) => api.get('/clinic-admin/report/', { params }),
+  }) => api.get('/clinic-admin/report-data/', { params }),
 };

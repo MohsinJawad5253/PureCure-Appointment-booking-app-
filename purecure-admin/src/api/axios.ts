@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-const BASE_URL =
-  'https://purecure-appointment-booking-app-g5ua.onrender.com/api';
+// In development, Vite proxies /api to the Render backend (see vite.config.ts).
+// In production, set VITE_API_URL to the full backend URL.
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  // Render free tier has cold starts up to 60s — use 60s timeout
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -17,7 +17,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 — redirect to login (but not if already there)
+// Handle 401 — redirect to login
 api.interceptors.response.use(
   (res) => res,
   (error) => {

@@ -90,6 +90,7 @@ export default function ReportsPage() {
       generateClinicReport(reportData);
       toast.success('PDF downloaded successfully!', { id: 'pdf' });
     } catch (err) {
+      console.error('PDF Generation Error:', err);
       toast.error('Failed to generate PDF', { id: 'pdf' });
     } finally {
       setGenerating(false);
