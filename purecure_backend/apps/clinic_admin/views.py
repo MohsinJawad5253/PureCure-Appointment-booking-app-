@@ -746,17 +746,39 @@ class ClinicReportDataView(APIView):
 
         # Daily breakdown
         from django.db.models.functions import TruncDate
-        daily = list(
-            appts.annotate(
-                day=TruncDate('appointment_date')
-            ).values('day').annotate(
-                total=Count('id'),
-                completed_count=Count(
-                    'id',
-                    filter=Q(status='completed')
-                ),
-            ).order_by('day')
+
+        # NOTE:
+        # Avoid Django's `filter=` aggregates here. On Render (SQLite) this can
+        # throw: "OperationalError: user-defined function raised exception".
+        # Instead, compute totals and completed counts via two simple queries.
+        daily_totals = list(
+            appts.annotate(day=TruncDate('appointment_date'))
+            .values('day')
+            .annotate(total=Count('id'))
+            .order_by('day')
         )
+
+        daily_completed_rows = list(
+            appts.filter(status='completed')
+            .annotate(day=TruncDate('appointment_date'))
+            .values('day')
+            .annotate(completed_count=Count('id'))
+            .order_by('day')
+        )
+
+        completed_by_day = {
+            row['day']: row['completed_count']
+            for row in daily_completed_rows
+        }
+
+        daily = [
+            {
+                'day': row['day'],
+                'total': row['total'],
+                'completed_count': completed_by_day.get(row['day'], 0),
+            }
+            for row in daily_totals
+        ]
 
         # Top patients: derive from `appts` only. A User + Count(..., filter=Q(...))
         # pattern can trigger SQLite OperationalError ("user-defined function raised
