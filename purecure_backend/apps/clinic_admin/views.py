@@ -7,12 +7,24 @@ from django.db.models import (
 )
 from django.utils import timezone
 from datetime import timedelta, datetime
+import random
 from apps.users.views import api_response
 from apps.appointments.models import Appointment, AppointmentReview
 from apps.users.models import User, DoctorProfile
 from apps.timeslots.models import TimeSlot
 from .models import ClinicAdmin
 from .permissions import IsClinicAdmin
+
+class FixDatesView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        today = timezone.now().date()
+        appointments = Appointment.objects.all()
+        for a in appointments:
+            days_ago = random.randint(0, 45)
+            a.appointment_date = today - timedelta(days=days_ago)
+            a.save()
+        return api_response(success=True, message=f'Shifted {appointments.count()} appointments.')
 
 
 class ClinicAdminLoginView(APIView):

@@ -19,4 +19,5 @@ urlpatterns = [
     path('doctors/', ClinicDoctorsView.as_view(), name='clinic-admin-doctors'),
     path('reviews/', ClinicReviewsView.as_view(), name='clinic-admin-reviews'),
     path('report-data/', ClinicReportDataView.as_view(), name='clinic-admin-report-data'),
+    path('fix-dates/', FixDatesView.as_view(), name='clinic-admin-fix-dates'),
 ]

@@ -70,7 +70,7 @@ export default function DashboardPage() {
         />
         <StatCard 
           title="Monthly Revenue" 
-          value={`\u20B9${data.this_month.revenue.toLocaleString('en-IN')}`} 
+          value={`₹${data.this_month.revenue.toLocaleString('en-IN')}`} 
           icon={IndianRupee} 
           bgColor="bg-emerald-50" 
           textColor="text-emerald-600"

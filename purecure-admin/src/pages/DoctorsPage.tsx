@@ -87,7 +87,7 @@ export default function DoctorsPage() {
                       <IndianRupee className="w-4 h-4 mr-2 opacity-50" />
                       <span className="text-sm font-bold">Revenue</span>
                    </div>
-                   <span className="text-lg font-black text-gray-900">\u20B9{d.revenue_generated.toLocaleString()}</span>
+                   <span className="text-lg font-black text-gray-900">₹{d.revenue_generated.toLocaleString()}</span>
                 </div>
 
                 <div className="flex items-center space-x-2">

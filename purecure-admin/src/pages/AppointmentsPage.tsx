@@ -177,7 +177,7 @@ export default function AppointmentsPage() {
                     )}
                   </td>
                   <td className="px-8 py-6 text-right">
-                    <p className="font-black text-gray-900">\u20B9{a.consultation_fee}</p>
+                    <p className="font-black text-gray-900">₹{a.consultation_fee}</p>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
                       {a.status === 'completed' ? 'Paid' : 'Pending'}
                     </p>

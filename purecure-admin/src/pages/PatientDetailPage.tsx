@@ -108,7 +108,7 @@ export default function PatientDetailPage() {
              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-50">
                   <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-1">Total Spent</p>
-                  <p className="text-xl font-black text-emerald-600">\u20B9{stats.total_spent.toLocaleString()}</p>
+                  <p className="text-xl font-black text-emerald-600">₹{stats.total_spent.toLocaleString()}</p>
                 </div>
                 <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-50">
                   <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Total Visits</p>
@@ -177,7 +177,7 @@ export default function PatientDetailPage() {
                            <StatusBadge status={a.status} />
                         </td>
                         <td className="px-8 py-6 text-right">
-                           <p className="font-black text-gray-900">\u20B9{a.consultation_fee}</p>
+                           <p className="font-black text-gray-900">₹{a.consultation_fee}</p>
                         </td>
                       </tr>
                     ))}

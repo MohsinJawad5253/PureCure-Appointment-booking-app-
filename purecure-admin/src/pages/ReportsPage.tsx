@@ -233,7 +233,7 @@ export default function ReportsPage() {
                                </div>
                              </div>
                              <div className="text-right">
-                                <p className="text-sm font-black text-gray-900">\u20B9{d.revenue.toLocaleString()}</p>
+                                <p className="text-sm font-black text-gray-900">₹{d.revenue.toLocaleString()}</p>
                                 <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">{d.average_rating}★</p>
                              </div>
                           </div>
