@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { clinicApi } from '../api/clinicApi';
 import { LoadingSpinner, EmptyState } from '../components/ui/StatCard';
 import { generateClinicReport } from '../utils/pdfGenerator';
@@ -50,28 +50,40 @@ const presets = {
     from: format(startOfYear(today), 'yyyy-MM-dd'),
     to: format(today, 'yyyy-MM-dd'),
   },
+  /** Wide range so historical DB data (any year) is included */
+  'All time': {
+    from: '2000-01-01',
+    to: format(today, 'yyyy-MM-dd'),
+  },
 };
 
 export default function ReportsPage() {
-  const [dateFrom, setDateFrom] = useState(presets['This Month'].from);
-  const [dateTo, setDateTo] = useState(presets['This Month'].to);
+  const [dateFrom, setDateFrom] = useState(presets['All time'].from);
+  const [dateTo, setDateTo] = useState(presets['All time'].to);
   const [reportData, setReportData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async (options?: { notify?: boolean }) => {
+    const notify = options?.notify !== false;
     setLoading(true);
     setReportData(null);
     try {
       const res = await clinicApi.reportData({ date_from: dateFrom, date_to: dateTo });
       setReportData(res.data.data);
-      toast.success('Report metrics loaded');
+      if (notify) toast.success('Report metrics loaded');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to fetch report metrics');
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFrom, dateTo]);
+
+  useEffect(() => {
+    fetchReportData({ notify: false });
+    // Intentionally once on mount (uses initial All time range); user refreshes via Preview
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePreset = (presetName: keyof typeof presets) => {
     const preset = presets[presetName];
@@ -151,7 +163,7 @@ export default function ReportsPage() {
               </div>
 
               <button
-                onClick={fetchReportData}
+                onClick={() => fetchReportData({ notify: true })}
                 disabled={loading}
                 className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.98] disabled:opacity-50"
               >
@@ -204,12 +216,37 @@ export default function ReportsPage() {
                     </span>
                   </div>
 
+                  {reportData.summary?.total_appointments === 0 &&
+                    (reportData.report_meta?.clinic_appointments_total ?? 0) > 0 && (
+                    <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                      <p className="font-bold">No appointments in this date range</p>
+                      <p className="mt-1 text-amber-900/90">
+                        This clinic has{' '}
+                        <span className="font-semibold">
+                          {reportData.report_meta.clinic_appointments_total}
+                        </span>{' '}
+                        appointment
+                        {reportData.report_meta.clinic_appointments_total === 1 ? '' : 's'} on file
+                        {reportData.report_meta.data_earliest_date &&
+                          reportData.report_meta.data_latest_date && (
+                            <>
+                              {' '}
+                              (between {reportData.report_meta.data_earliest_date} and{' '}
+                              {reportData.report_meta.data_latest_date})
+                            </>
+                          )}
+                        . Use the <span className="font-semibold">All time</span> preset or widen the
+                        range, then click Preview again.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                      {[
-                       { label: 'Total Appts', val: reportData.summary.total_appointments, icon: ClipboardListIcon },
-                       { label: 'Completion', val: `${reportData.summary.completion_rate}%`, icon: TrendingUp },
-                       { label: 'Revenue', val: `\u20B9${reportData.summary.total_revenue.toLocaleString()}`, icon: TrendingUp },
-                       { label: 'Patients', val: reportData.summary.unique_patients, icon: Users }
+                       { label: 'Total Appts', val: reportData.summary?.total_appointments ?? 0, icon: ClipboardListIcon },
+                       { label: 'Completion', val: `${reportData.summary?.completion_rate ?? 0}%`, icon: TrendingUp },
+                       { label: 'Revenue', val: `\u20B9${Number(reportData.summary?.total_revenue ?? 0).toLocaleString()}`, icon: TrendingUp },
+                       { label: 'Patients', val: reportData.summary?.unique_patients ?? 0, icon: Users }
                      ].map(s => (
                        <div key={s.label} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{s.label}</p>

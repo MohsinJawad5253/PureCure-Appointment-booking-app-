@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import models
 from django.db.models import (
-    Count, Avg, Sum, Q, F
+    Count, Avg, Sum, Q, F, Min, Max
 )
 from django.utils import timezone
 from datetime import timedelta, datetime
@@ -635,6 +635,18 @@ class ClinicReviewsView(APIView):
         )
 
 
+def _parse_report_date(value, default):
+    """Parse YYYY-MM-DD from query params for consistent date filtering."""
+    if value is None or value == '':
+        return default
+    if hasattr(value, 'strftime'):
+        return value
+    try:
+        return datetime.strptime(str(value)[:10], '%Y-%m-%d').date()
+    except ValueError:
+        return default
+
+
 class ClinicReportDataView(APIView):
     """
     Returns ALL data needed to generate a comprehensive
@@ -645,14 +657,26 @@ class ClinicReportDataView(APIView):
     def get(self, request):
         clinic = request.user.clinic_admin_profile.clinic
 
-        # Date range — default: current month
         today = timezone.now().date()
-        date_from = request.query_params.get(
-            'date_from',
-            str(today.replace(day=1))
+        month_start = today.replace(day=1)
+        date_from = _parse_report_date(
+            request.query_params.get('date_from'),
+            month_start,
         )
-        date_to = request.query_params.get(
-            'date_to', str(today)
+        date_to = _parse_report_date(
+            request.query_params.get('date_to'),
+            today,
+        )
+        if date_from > date_to:
+            date_from, date_to = date_to, date_from
+
+        # Lifetime stats for this clinic (helps explain empty ranges in the UI)
+        clinic_appt_stats = Appointment.objects.filter(
+            doctor__clinic=clinic
+        ).aggregate(
+            total_all=Count('id'),
+            first_date=Min('appointment_date'),
+            last_date=Max('appointment_date'),
         )
 
         appts = Appointment.objects.filter(
@@ -734,14 +758,18 @@ class ClinicReportDataView(APIView):
             ).order_by('day')
         )
 
-        # Top patients by visit count
+        # Top patients: count only appointments in this clinic + date range
+        in_range_appt = Q(
+            appointments__doctor__clinic=clinic,
+            appointments__appointment_date__gte=date_from,
+            appointments__appointment_date__lte=date_to,
+        )
         top_patients = list(
-            User.objects.filter(
-                appointments__doctor__clinic=clinic,
-                appointments__appointment_date__gte=date_from,
-                appointments__appointment_date__lte=date_to,
-            ).annotate(
-                visits=Count('appointments')
+            User.objects.filter(in_range_appt).annotate(
+                visits=Count(
+                    'appointments',
+                    filter=in_range_appt,
+                )
             ).order_by('-visits').distinct()[:10]
         )
 
@@ -785,12 +813,25 @@ class ClinicReportDataView(APIView):
                     'clinic_name': clinic.name,
                     'clinic_address': clinic.address,
                     'clinic_city': clinic.city,
-                    'date_from': date_from,
-                    'date_to': date_to,
+                    'date_from': str(date_from),
+                    'date_to': str(date_to),
                     'generated_at': str(
                         timezone.now().strftime(
                             '%d %B %Y, %I:%M %p'
                         )
+                    ),
+                    'clinic_appointments_total': (
+                        clinic_appt_stats['total_all'] or 0
+                    ),
+                    'data_earliest_date': (
+                        str(clinic_appt_stats['first_date'])
+                        if clinic_appt_stats['first_date']
+                        else None
+                    ),
+                    'data_latest_date': (
+                        str(clinic_appt_stats['last_date'])
+                        if clinic_appt_stats['last_date']
+                        else None
                     ),
                 },
                 'summary': {
