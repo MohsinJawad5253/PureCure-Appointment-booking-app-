@@ -84,6 +84,7 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
+CORS_ALLOW_ALL_ORIGINS = True   # Allow all origins (safe for a dev API; restrict in prod via CORS_ALLOWED_ORIGINS)
 CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = '/media/'

@@ -5,18 +5,19 @@ const BASE_URL =
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  // Render free tier has cold starts up to 60s — use 60s timeout
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach token
+// Attach JWT token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Handle 401
+// Handle 401 — redirect to login (but not if already there)
 api.interceptors.response.use(
   (res) => res,
   (error) => {

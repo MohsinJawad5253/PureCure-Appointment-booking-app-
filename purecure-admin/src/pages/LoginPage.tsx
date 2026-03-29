@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ShieldCheck, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -10,21 +10,29 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [wakingUp, setWakingUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Show warm-up hint after 4 seconds if still loading
+    const wakingTimer = setTimeout(() => setWakingUp(true), 4000);
+
     const res = await login(email, password);
+    clearTimeout(wakingTimer);
+    setWakingUp(false);
+
     if (res.success) {
       toast.success('Welcome back!');
       navigate('/');
     } else {
-      toast.error(res.message || 'Login failed');
+      toast.error(res.message || 'Login failed. Check your credentials and try again.');
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
+      <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-primary/10 mb-4">
             <ShieldCheck className="w-8 h-8 text-primary" />
@@ -74,13 +82,26 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Cold-start warm-up hint */}
+            {wakingUp && (
+              <div className="flex items-center space-x-3 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+                <Loader2 className="w-4 h-4 text-amber-500 animate-spin shrink-0" />
+                <p className="text-xs font-semibold text-amber-700">
+                  Server is waking up — this may take up to 60 seconds on first request. Please wait…
+                </p>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-primary hover:bg-primary-600 disabled:bg-primary/50 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-primary/20 active:scale-[0.98] flex items-center justify-center space-x-2"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <div className="flex items-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <span className="text-sm">{wakingUp ? 'Connecting to server…' : 'Signing in…'}</span>
+                </div>
               ) : (
                 <span>Sign In to Dashboard</span>
               )}
@@ -89,11 +110,11 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 text-center">
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center space-x-2">
-                <span>HIPAA Compliant</span>
-                <span className="w-1 h-1 rounded-full bg-gray-300" />
-                <span>256-bit SSL</span>
-            </p>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center space-x-2">
+            <span>HIPAA Compliant</span>
+            <span className="w-1 h-1 rounded-full bg-gray-300" />
+            <span>256-bit SSL</span>
+          </p>
         </div>
       </div>
     </div>
