@@ -1,5 +1,5 @@
 import api from './api';
-import { Appointment, AppointmentDoctor, PaginatedResponse } from '@types/index';
+import { Appointment, AppointmentDoctor, PaginatedResponse } from '@app-types/index';
 
 export const appointmentService = {
   // Patient

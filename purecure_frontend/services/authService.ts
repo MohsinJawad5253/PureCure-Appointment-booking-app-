@@ -1,7 +1,7 @@
 import api from './api';
 import * as SecureStore from 'expo-secure-store';
 import { SECURE_STORE_KEYS } from '@constants/index';
-import { AuthResponse, User } from '@types/index';
+import { AuthResponse, User } from '@app-types/index';
 
 export const authService = {
   async registerPatient(data: {

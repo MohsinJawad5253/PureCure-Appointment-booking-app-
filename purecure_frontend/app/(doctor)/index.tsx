@@ -14,7 +14,7 @@ import {
   COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOW
 } from '@constants/index';
 import { getInitials } from '@utils/index';
-import { AppointmentDoctor } from '@types/index';
+import { AppointmentDoctor } from '@app-types/index';
 import BulkCancelModal from '@/components/BulkCancelModal';
 
 const SkeletonCard = () => {

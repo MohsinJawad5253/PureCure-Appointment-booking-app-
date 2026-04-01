@@ -24,8 +24,8 @@ const InfoRow = ({ icon, text, isLast = false }: { icon: any; text: string; isLa
 );
 
 const MenuRow = ({ icon, label, color, onPress, isLast = false }: any) => (
-  <TouchableOpacity 
-    style={[styles.menuRow, isLast && { borderBottomWidth: 0 }]} 
+  <TouchableOpacity
+    style={[styles.menuRow, isLast && { borderBottomWidth: 0 }]}
     onPress={onPress}
   >
     <View style={[styles.menuIconBox, { backgroundColor: `${color}15` }]}>
@@ -53,21 +53,36 @@ export default function PatientProfileScreen() {
   const [completedCount, setCompletedCount] = useState(0);
 
   useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const [upcoming, completed] = await Promise.all([
-          appointmentService.myList({ status: 'upcoming', page: 1 }),
-          appointmentService.myList({ status: 'completed', page: 1 }),
-        ]);
-        // Handle both response shapes (paginated vs array)
-        setUpcomingCount(upcoming?.data?.count ?? upcoming?.count ?? 0);
-        setCompletedCount(completed?.data?.count ?? completed?.count ?? 0);
-      } catch {
-        // Silently fail — counts are not critical
-      }
-    };
-    fetchCounts();
-  }, []);
+  const fetchCounts = async () => {
+    try {
+      const [upcoming, completed] = await Promise.all([
+        appointmentService.myList({ status: 'upcoming', page: 1 }),
+        appointmentService.myList({ status: 'completed', page: 1 }),
+      ]);
+
+      // Cast to any to safely extract count
+      // regardless of response shape
+      const upcomingAny = upcoming as any;
+      const completedAny = completed as any;
+
+      setUpcomingCount(
+        upcomingAny?.data?.data?.count ??
+        upcomingAny?.data?.count ??
+        upcomingAny?.count ??
+        0
+      );
+      setCompletedCount(
+        completedAny?.data?.data?.count ??
+        completedAny?.data?.count ??
+        completedAny?.count ??
+        0
+      );
+    } catch {
+      // Silently fail — counts are not critical
+    }
+  };
+  fetchCounts();
+}, []);
 
   const handleLogout = () => {
     Alert.alert(
@@ -98,7 +113,7 @@ export default function PatientProfileScreen() {
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -113,7 +128,7 @@ export default function PatientProfileScreen() {
               </View>
             )}
           </View>
-          
+
           <Text style={styles.userName}>{user?.full_name}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>Patient</Text>
@@ -123,40 +138,40 @@ export default function PatientProfileScreen() {
             <InfoRow icon="mail-outline" text={user?.email || ''} />
             <InfoRow icon="call-outline" text={user?.phone || ''} />
             <InfoRow icon="calendar-outline" text={user?.date_of_birth ? formatDate(user.date_of_birth) : ''} />
-            <InfoRow 
-              icon={user?.gender === 'female' ? 'female-outline' : 'male-outline'} 
-              text={user?.gender ? (user.gender.charAt(0).toUpperCase() + user.gender.slice(1)) : ''} 
-              isLast 
+            <InfoRow
+              icon={user?.gender === 'female' ? 'female-outline' : 'male-outline'}
+              text={user?.gender ? (user.gender.charAt(0).toUpperCase() + user.gender.slice(1)) : ''}
+              isLast
             />
           </View>
         </View>
 
         {/* MENU CARD */}
         <View style={styles.menuCard}>
-          <MenuRow 
-            icon="person-outline" 
-            label="Edit Profile" 
-            color="#3B82F6" 
-            onPress={() => router.push('/shared/edit-profile')} 
+          <MenuRow
+            icon="person-outline"
+            label="Edit Profile"
+            color="#3B82F6"
+            onPress={() => router.push('/shared/edit-profile')}
           />
-          <MenuRow 
-            icon="lock-closed-outline" 
-            label="Change Password" 
-            color="#10B981" 
-            onPress={() => router.push('/shared/change-password')} 
+          <MenuRow
+            icon="lock-closed-outline"
+            label="Change Password"
+            color="#10B981"
+            onPress={() => router.push('/shared/change-password')}
           />
-          <MenuRow 
-            icon="calendar-outline" 
-            label="My Appointments" 
-            color="#8B5CF6" 
-            onPress={() => router.push('/(patient)/appointments')} 
+          <MenuRow
+            icon="calendar-outline"
+            label="My Appointments"
+            color="#8B5CF6"
+            onPress={() => router.push('/(patient)/appointments')}
           />
-          <MenuRow 
-            icon="star-outline" 
-            label="My Reviews" 
-            color="#F59E0B" 
-            isLast 
-            onPress={() => router.push({ pathname: '/(patient)/appointments', params: { tab: 'completed' } })} 
+          <MenuRow
+            icon="star-outline"
+            label="My Reviews"
+            color="#F59E0B"
+            isLast
+            onPress={() => router.push({ pathname: '/(patient)/appointments', params: { tab: 'completed' } })}
           />
         </View>
 
@@ -184,8 +199,8 @@ export default function PatientProfileScreen() {
         </View>
 
         {/* LOGOUT BUTTON */}
-        <TouchableOpacity 
-          style={styles.logoutBtn} 
+        <TouchableOpacity
+          style={styles.logoutBtn}
           onPress={handleLogout}
           disabled={loggingOut}
         >

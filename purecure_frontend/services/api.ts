@@ -1,3 +1,9 @@
+// Use a callback to avoid circular dependency
+let clearAuthCallback: (() => void) | null = null;
+
+export const setClearAuthCallback = (cb: () => void) => {
+  clearAuthCallback = cb;
+};
 import axios, {
   AxiosInstance,
   AxiosRequestConfig,
@@ -121,8 +127,12 @@ api.interceptors.response.use(
 
       // Signal auth store to log out
       // (imported lazily to avoid circular dependency)
-      const { useAuthStore } = await import('@store/authStore');
-      useAuthStore.getState().clearAuth();
+      try {
+        const { useAuthStore } = require('@store/authStore');
+        useAuthStore.getState().clearAuth();
+      } catch {
+        // Store not available
+      }
 
       return Promise.reject(refreshError);
     } finally {

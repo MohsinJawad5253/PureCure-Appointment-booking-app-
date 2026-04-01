@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, AuthTokens, UserRole } from '@types/index';
+import { User, AuthTokens, UserRole } from '@app-types/index';
 import { authService } from '@services/authService';
 import * as SecureStore from 'expo-secure-store';
 import { SECURE_STORE_KEYS } from '@constants/index';

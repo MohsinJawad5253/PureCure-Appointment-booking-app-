@@ -237,35 +237,44 @@ export default function DoctorPatients() {
       </View>
 
       {/* PATIENT LIST */}
-      <FlatList
-        data={loading ? [1, 2, 3, 4] : patients}
-        keyExtractor={(item, index) => loading ? index.toString() : (item as PatientRecord).id}
-        renderItem={({ item }) => loading ? (
-          <View style={{ marginBottom: 10 }}>
-            <SkeletonBox width="100%" height={90} borderRadius={16} />
-          </View>
-        ) : renderPatientCard({ item: item as PatientRecord })}
-        contentContainerStyle={{ paddingHorizontal: SPACING.lg, paddingBottom: 100, paddingTop: SPACING.md }}
-        showsVerticalScrollIndicator={false}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
-        }
-        ListFooterComponent={() => loading && page > 1 ? (
-          <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 20 }} />
-        ) : null}
-        ListEmptyComponent={() => {
-          if (loading) return null;
-          return (
+      {!loading && (
+        <FlatList
+          data={patients}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => renderPatientCard({ item })}
+          contentContainerStyle={{ 
+            paddingHorizontal: SPACING.lg, 
+            paddingBottom: 100, 
+            paddingTop: SPACING.md 
+          }}
+          showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+            />
+          }
+          ListFooterComponent={() => loading && page > 1 ? (
+            <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 20 }} />
+          ) : null}
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={56} color={COLORS.textMuted} />
+              <Ionicons
+                name="people-outline"
+                size={56}
+                color={COLORS.textMuted}
+              />
               <Text style={styles.emptyTitle}>No patients found</Text>
-              <Text style={styles.emptySubtitle}>Patients who book appointments with you appear here</Text>
+              <Text style={styles.emptySubtitle}>
+                Patients who book appointments with you appear here
+              </Text>
             </View>
-          );
-        }}
-      />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }

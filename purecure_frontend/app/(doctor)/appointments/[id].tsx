@@ -16,7 +16,7 @@ import {
 import {
   formatDate, formatTimeRange, getInitials,
 } from '@utils/index';
-import { AppointmentDoctor } from '@types/index';
+import { AppointmentDoctor } from '@app-types/index';
 
 const SkeletonCard = () => {
   return (
