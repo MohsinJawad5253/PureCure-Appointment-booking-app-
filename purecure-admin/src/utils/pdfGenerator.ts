@@ -6,20 +6,28 @@ const DARK = [31, 41, 55] as [number, number, number];
 const GRAY = [107, 114, 128] as [number, number, number];
 const LIGHT_GRAY = [249, 250, 251] as [number, number, number];
 
-/** jsPDF Helvetica is WinAnsi-only; avoid ₹, ★, and other non-Latin-1 chars. */
-function inr(n: number): string {
-  return `Rs. ${Number(n || 0).toLocaleString('en-IN')}`;
-}
+// jsPDF Helvetica font is WinAnsi-only; it can't render ₹ (U+20B9) or ★.
+// Use Rs. as a safe ASCII fallback for PDF output.
+const pdfCurrency = (amount: number): string => {
+  const formatted = Math.round(Number(amount || 0)).toLocaleString('en-IN');
+  return `Rs. ${formatted}`;
+};
 
 function ratingLabel(n: number | string): string {
   return `${n} / 5`;
 }
 
 function feeCell(raw: unknown): string {
-  if (raw == null || raw === '') return inr(0);
+  if (raw == null || raw === '') return pdfCurrency(0);
   const s = String(raw);
-  if (s.includes('Rs.')) return s;
-  return s.replace(/₹\s*/g, 'Rs. ');
+  // Strip currency symbols and grouping separators, then parse.
+  const numeric = s
+    .replace(/₹\s*/g, '')
+    .replace(/Rs\.?\s*/gi, '')
+    .replace(/,/g, '')
+    .trim();
+  const n = Number.parseFloat(numeric);
+  return Number.isFinite(n) ? pdfCurrency(n) : pdfCurrency(0);
 }
 
 export function generateClinicReport(reportData: any): void {
@@ -95,7 +103,7 @@ export function generateClinicReport(reportData: any): void {
     { label: 'Completed', value: String(summary.completed ?? 0) },
     { label: 'Cancelled', value: String(summary.cancelled ?? 0) },
     { label: 'No Show', value: String(summary.no_show ?? 0) },
-    { label: 'Total Revenue', value: inr(Number(summary.total_revenue ?? 0)) },
+    { label: 'Total Revenue', value: pdfCurrency(Number(summary.total_revenue ?? 0)) },
     { label: 'Unique Patients', value: String(summary.unique_patients ?? 0) },
     { label: 'Completion Rate', value: `${summary.completion_rate ?? 0}%` },
     { label: 'Avg Rating', value: ratingLabel(summary.average_rating ?? 0) },
@@ -148,7 +156,7 @@ export function generateClinicReport(reportData: any): void {
       String(d.total_appointments ?? 0),
       String(d.completed ?? 0),
       String(d.cancelled ?? 0),
-      inr(Number(d.revenue ?? 0)),
+      pdfCurrency(Number(d.revenue ?? 0)),
       ratingLabel(d.average_rating ?? 0),
     ]),
     headStyles: {
