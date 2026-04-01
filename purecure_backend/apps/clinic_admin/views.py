@@ -7,7 +7,9 @@ from django.db.models import (
 )
 from django.utils import timezone
 from datetime import timedelta, datetime
+from collections import defaultdict
 import random
+import logging
 from apps.users.views import api_response
 from apps.appointments.models import Appointment, AppointmentReview
 from apps.users.models import User, DoctorProfile
@@ -188,18 +190,38 @@ class ClinicDashboardView(APIView):
             ).select_related('doctor')
         )
 
-        # Monthly trend — last 6 months
-        from django.db.models.functions import TruncMonth
-        monthly_trend = list(
-            all_appts.filter(
+        # Monthly trend — Python grouping (SQLite compatible)
+        monthly_trend = []
+        try:
+            six_months_ago = today - timedelta(days=180)
+            recent_completed = all_appts.filter(
                 status='completed',
-                appointment_date__gte=today - timedelta(days=180),
-            ).annotate(
-                month=TruncMonth('appointment_date')
-            ).values('month').annotate(
-                count=Count('id')
-            ).order_by('month')
-        )
+                appointment_date__gte=six_months_ago,
+            ).values('appointment_date')
+
+            month_map = defaultdict(int)
+            for a in recent_completed:
+                # Group by "Jan 2026" format
+                month_key = a['appointment_date'].strftime('%b %Y')
+                month_map[month_key] += 1
+
+            # Sort by actual date order
+            def month_sort_key(m):
+                try:
+                    return datetime.strptime(m, '%b %Y')
+                except Exception:
+                    return datetime.min
+
+            monthly_trend = [
+                {'month': month, 'count': count}
+                for month, count in sorted(
+                    month_map.items(), key=lambda x: month_sort_key(x[0])
+                )
+            ]
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f'Dashboard monthly trend failed: {e}')
+            monthly_trend = []
 
         # Appointment status breakdown this month
         status_breakdown = dict(
@@ -262,13 +284,7 @@ class ClinicDashboardView(APIView):
                     'total_reviews': reviews.count(),
                 },
                 'status_breakdown': status_breakdown,
-                'monthly_trend': [
-                    {
-                        'month': item['month'].strftime('%b %Y'),
-                        'count': item['count'],
-                    }
-                    for item in monthly_trend
-                ],
+                'monthly_trend': monthly_trend,
             },
         )
 
@@ -293,7 +309,7 @@ class ClinicPatientsView(APIView):
                     appointments__status='completed',
                 )
             ),
-            last_visit=models.Max(
+            last_visit=Max(
                 'appointments__appointment_date',
                 filter=Q(appointments__doctor__clinic=clinic)
             ),
@@ -655,6 +671,23 @@ class ClinicReportDataView(APIView):
     permission_classes = [IsAuthenticated, IsClinicAdmin]
 
     def get(self, request):
+        logger = logging.getLogger(__name__)
+
+        try:
+            return self._generate_report(request, logger)
+        except Exception as e:
+            logger.error(
+                f'ClinicReportDataView unhandled error: '
+                f'{type(e).__name__}: {e}',
+                exc_info=True
+            )
+            return api_response(
+                success=False,
+                message=f'Report generation failed: {str(e)}',
+                status_code=500,
+            )
+
+    def _generate_report(self, request, logger):
         clinic = request.user.clinic_admin_profile.clinic
 
         today = timezone.now().date()
@@ -744,45 +777,29 @@ class ClinicReportDataView(APIView):
                 'consultation_fee': float(d.consultation_fee),
             })
 
-        # Daily breakdown
-        from django.db.models.functions import TruncDate
+        # Daily breakdown — Python grouping (SQLite compatible)
+        daily_breakdown = []
+        try:
+            daily_map = defaultdict(lambda: {'total': 0, 'completed': 0})
+            for a in appts.values('appointment_date', 'status'):
+                date_str = str(a['appointment_date'])
+                daily_map[date_str]['total'] += 1
+                if a['status'] == 'completed':
+                    daily_map[date_str]['completed'] += 1
+            
+            daily_breakdown = [
+                {
+                    'date': date_str,
+                    'total': counts['total'],
+                    'completed': counts['completed'],
+                }
+                for date_str, counts in sorted(daily_map.items())
+            ]
+        except Exception as e:
+            logger.error(f'Daily breakdown failed: {e}')
+            daily_breakdown = []
 
-        # NOTE:
-        # Avoid Django's `filter=` aggregates here. On Render (SQLite) this can
-        # throw: "OperationalError: user-defined function raised exception".
-        # Instead, compute totals and completed counts via two simple queries.
-        daily_totals = list(
-            appts.annotate(day=TruncDate('appointment_date'))
-            .values('day')
-            .annotate(total=Count('id'))
-            .order_by('day')
-        )
-
-        daily_completed_rows = list(
-            appts.filter(status='completed')
-            .annotate(day=TruncDate('appointment_date'))
-            .values('day')
-            .annotate(completed_count=Count('id'))
-            .order_by('day')
-        )
-
-        completed_by_day = {
-            row['day']: row['completed_count']
-            for row in daily_completed_rows
-        }
-
-        daily = [
-            {
-                'day': row['day'],
-                'total': row['total'],
-                'completed_count': completed_by_day.get(row['day'], 0),
-            }
-            for row in daily_totals
-        ]
-
-        # Top patients: derive from `appts` only. A User + Count(..., filter=Q(...))
-        # pattern can trigger SQLite OperationalError ("user-defined function raised
-        # exception") on some Django / Python / SQLite combinations.
+        # Top patients: derive from `appts` only
         top_rows = list(
             appts.values('patient_id')
             .annotate(visits=Count('id'))
@@ -879,14 +896,7 @@ class ClinicReportDataView(APIView):
                     'total_doctors': doctors.count(),
                 },
                 'doctor_breakdown': doctor_breakdown,
-                'daily_breakdown': [
-                    {
-                        'date': str(d['day']),
-                        'total': d['total'],
-                        'completed': d['completed_count'],
-                    }
-                    for d in daily
-                ],
+                'daily_breakdown': daily_breakdown,
                 'top_patients': top_patients,
                 'rating_breakdown': rating_breakdown,
                 'appointment_details': appt_details,

@@ -3,7 +3,7 @@ from django.db.models import (
     Count, Avg, Sum, Q, F, Value, CharField,
     Case, When, IntegerField, DecimalField, Max
 )
-from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
+from collections import defaultdict
 from django.utils import timezone
 from apps.users.models import DoctorProfile, User
 from apps.appointments.models import Appointment, AppointmentReview
@@ -251,18 +251,30 @@ def get_dashboard_stats(doctor: DoctorProfile) -> dict:
     for i in range(1, 6):
         rating_breakdown[str(i)] = reviews.filter(rating=i).count()
 
-    # Monthly trend — last 6 months
+    # Monthly trend — Python grouping (SQLite compatible)
     six_months_ago = today - timedelta(days=180)
-    monthly_trend = list(
-        all_appts.filter(
-            appointment_date__gte=six_months_ago,
-            status='completed',
-        ).annotate(
-            month=TruncMonth('appointment_date')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month')
-    )
+    recent_appts = all_appts.filter(
+        appointment_date__gte=six_months_ago,
+        status='completed',
+    ).values('appointment_date')
+
+    month_map = defaultdict(int)
+    for a in recent_appts:
+        month_key = a['appointment_date'].strftime('%b %Y')
+        month_map[month_key] += 1
+
+    # Sort by actual date
+    def month_sort_key(m):
+        try:
+            return datetime.strptime(m, '%b %Y')
+        except Exception:
+            return datetime.min
+
+    sorted_months = sorted(month_map.items(), key=lambda x: month_sort_key(x[0]))
+    monthly_trend = [
+        {'month': month, 'count': count}
+        for month, count in sorted_months
+    ]
 
     # Next appointment
     next_appt = all_appts.filter(
@@ -330,19 +342,31 @@ def get_earnings_summary(doctor: DoctorProfile) -> dict:
     )
     all_time_earnings = earned(Appointment.objects)
 
-    # Monthly breakdown — last 6 months
+    # Monthly breakdown — Python grouping (SQLite compatible)
     six_months_ago = today - timedelta(days=180)
-    monthly = list(
-        Appointment.objects.filter(
-            doctor=doctor,
-            status='completed',
-            appointment_date__gte=six_months_ago,
-        ).annotate(
-            month=TruncMonth('appointment_date')
-        ).values('month').annotate(
-            count=Count('id')
-        ).order_by('month')
-    )
+    recent_appts = Appointment.objects.filter(
+        doctor=doctor,
+        status='completed',
+        appointment_date__gte=six_months_ago,
+    ).values('appointment_date')
+
+    month_map = defaultdict(int)
+    for a in recent_appts:
+        month_key = a['appointment_date'].strftime('%b %Y')
+        month_map[month_key] += 1
+
+    # Sort by actual date
+    def month_sort_key(m):
+        try:
+            return datetime.strptime(m, '%b %Y')
+        except Exception:
+            return datetime.min
+
+    sorted_months = sorted(month_map.items(), key=lambda x: month_sort_key(x[0]))
+    monthly = [
+        {'month': month, 'count': count}
+        for month, count in sorted_months
+    ]
 
     return {
         'consultation_fee': fee,
