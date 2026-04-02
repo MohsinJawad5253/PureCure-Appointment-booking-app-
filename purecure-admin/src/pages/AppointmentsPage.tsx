@@ -164,6 +164,12 @@ export default function AppointmentsPage() {
                        <div>
                          <p className="font-bold text-gray-900">{a.doctor_name}</p>
                          <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{a.specialty}</p>
+                         {a.clinic_name && (
+                           <p className="text-xs text-gray-500 mt-1 flex items-center">
+                             <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mr-1.5"></span>
+                             {a.clinic?.name || a.clinic_name}
+                           </p>
+                         )}
                        </div>
                     </div>
                   </td>

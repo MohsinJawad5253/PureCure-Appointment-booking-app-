@@ -36,6 +36,7 @@ export default function DoctorProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
   const [weekDays, setWeekDays] = useState<DayAvailability[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -48,18 +49,26 @@ export default function DoctorProfileScreen() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [doc, week] = await Promise.all([
-          doctorService.detail(id),
-          doctorService.weekAvailability(id),
-        ]);
-        setDoctor(doc);
+        const rawDoc = await doctorService.detail(id);
+        const safeDoc = { ...rawDoc, clinics: rawDoc.clinics || [] };
+        setDoctor(safeDoc);
+        
+        // Safely fallback clinics array
+        const clinics = safeDoc.clinics;
+        
+        // Find primary clinic or first available
+        const primaryClinic = clinics.find(c => c.is_primary) || clinics[0];
+        const clinicId = primaryClinic?.id || null;
+        setSelectedClinicId(clinicId);
+
+        const week = await doctorService.weekAvailability(id, undefined, clinicId || undefined);
         setWeekDays(week);
         
         // Auto-select first day that has slots
         const firstAvailable = week.find(d => d.has_slots);
         if (firstAvailable) {
           setSelectedDate(firstAvailable.date);
-          fetchSlots(firstAvailable.date);
+          fetchSlots(firstAvailable.date, clinicId || undefined);
         }
       } catch (err) {
         console.error(err);
@@ -70,12 +79,36 @@ export default function DoctorProfileScreen() {
     init();
   }, [id]);
 
-  const fetchSlots = async (date: string) => {
+  const fetchSlots = async (date: string, clinicId?: string | null) => {
+    const cid = clinicId === undefined ? selectedClinicId : clinicId;
     setLoadingSlots(true);
     setSelectedSlot(null);
     try {
-      const slotList = await doctorService.availableSlots(id, date);
+      const slotList = await doctorService.availableSlots(id, date, cid || undefined);
       setSlots(slotList);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleClinicChange = async (clinicId: string) => {
+    setSelectedClinicId(clinicId);
+    setLoadingSlots(true);
+    setSelectedSlot(null);
+    try {
+      const week = await doctorService.weekAvailability(id, undefined, clinicId);
+      setWeekDays(week);
+      
+      const firstAvailable = week.find(d => d.has_slots);
+      if (firstAvailable) {
+        setSelectedDate(firstAvailable.date);
+        fetchSlots(firstAvailable.date, clinicId || undefined);
+      } else {
+        setSelectedDate('');
+        setSlots([]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -90,18 +123,22 @@ export default function DoctorProfileScreen() {
   };
 
   const handleBook = () => {
-    if (!selectedSlot || !doctor) return;
+    if (!selectedSlot || !doctor || !selectedClinicId) return;
+    
+    const activeClinic = doctor.clinics.find(c => c.id === selectedClinicId);
+    
     router.push({
       pathname: '/(patient)/booking/confirm',
       params: {
         doctorId: doctor.id,
         slotId: selectedSlot.id,
+        clinicId: selectedClinicId,
         doctorName: doctor.full_name,
         specialty: doctor.specialty_display,
-        clinicName: doctor.clinic_name,
+        clinicName: activeClinic?.name || doctor.clinic_name,
         date: selectedDate,
         time: selectedSlot.display_time,
-        fee: String(doctor.consultation_fee),
+        fee: String(activeClinic?.consultation_fee || doctor.consultation_fee),
       },
     });
   };
@@ -115,6 +152,8 @@ export default function DoctorProfileScreen() {
   }
 
   if (!doctor) return null;
+
+  const currentClinic = doctor.clinics.find(c => c.id === selectedClinicId) || doctor.clinics[0];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -141,12 +180,48 @@ export default function DoctorProfileScreen() {
           </View>
           <Text style={styles.name}>{formatDoctorName(doctor.full_name)}</Text>
           <Text style={styles.specialty}>{doctor.specialty_display.toUpperCase()}</Text>
-          <Text style={styles.clinicInfo}>{doctor.clinic_name} • {doctor.years_experience}+ Years Exp.</Text>
+          <View style={styles.clinicBadge}>
+            <Ionicons name="location" size={14} color={COLORS.primary} />
+            <Text style={styles.clinicInfo}>{currentClinic?.name || doctor.clinic_name}</Text>
+          </View>
+          <Text style={styles.expText}>{doctor.years_experience}+ Years Exp.</Text>
           <View style={styles.ratingRow}>
             <StarRating rating={Number(doctor.rating || 0)} />
             <Text style={styles.reviewsText}>({Number(doctor.review_count || 0)} Reviews)</Text>
           </View>
         </View>
+
+        {/* CLINIC SELECTOR */}
+        {doctor.clinics.length > 1 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Select Clinic</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.clinicList}>
+              {doctor.clinics.map((clinic) => (
+                <TouchableOpacity 
+                  key={clinic.id} 
+                  onPress={() => handleClinicChange(clinic.id)}
+                  style={[
+                    styles.clinicCard,
+                    selectedClinicId === clinic.id && styles.clinicCardActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.clinicName,
+                    selectedClinicId === clinic.id && styles.whiteText
+                  ]}>{clinic.name}</Text>
+                  <Text style={[
+                    styles.clinicLocation,
+                    selectedClinicId === clinic.id && styles.whiteTextOp
+                  ]} numberOfLines={1}>{clinic.city}</Text>
+                  <Text style={[
+                    styles.clinicFee,
+                    selectedClinicId === clinic.id && styles.whiteText
+                  ]}>{formatFee(clinic.consultation_fee)}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* STATS ROW */}
         <View style={styles.statsRow}>
@@ -364,6 +439,58 @@ const styles = StyleSheet.create({
   reviewsText: {
     fontSize: 12,
     color: COLORS.textSecondary,
+  },
+  clinicBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  expText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  clinicList: {
+    gap: 12,
+    paddingRight: SPACING.lg,
+  },
+  clinicCard: {
+    width: 160,
+    padding: SPACING.md,
+    backgroundColor: '#fff',
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    ...SHADOW.sm,
+  },
+  clinicCardActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+    ...SHADOW.md,
+  },
+  clinicName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  clinicLocation: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  clinicFee: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  whiteTextOp: {
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   statsRow: {
     flexDirection: 'row',

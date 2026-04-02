@@ -17,6 +17,7 @@ export default function BookingConfirmScreen() {
   const params = useLocalSearchParams<{
     doctorId: string;
     slotId: string;
+    clinicId: string;
     doctorName: string;
     specialty: string;
     clinicName: string;
@@ -41,6 +42,7 @@ export default function BookingConfirmScreen() {
       await appointmentService.book({
         doctor_id: params.doctorId,
         slot_id: params.slotId,
+        clinic_id: params.clinicId,
         reason: reason.trim(),
         patient_notes: patientNotes.trim(),
       });

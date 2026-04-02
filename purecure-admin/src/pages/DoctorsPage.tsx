@@ -61,6 +61,18 @@ export default function DoctorsPage() {
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{d.review_count} Reviews</span>
                   </div>
                   <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">{d.specialty}</p>
+                  {d.clinics && d.clinics.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {d.clinics.map((clinic: any) => (
+                        <span key={clinic.id} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">
+                          {clinic.name}
+                          {clinic.is_primary && (
+                            <Star className="w-2.5 h-2.5 ml-1 fill-gray-400 text-gray-400" />
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
              </div>
 

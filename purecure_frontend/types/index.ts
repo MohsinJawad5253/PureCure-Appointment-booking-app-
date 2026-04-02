@@ -68,6 +68,15 @@ export interface Clinic extends ClinicMinimal {
   rating: number | string;
 }
 
+export interface DoctorClinicInfo {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  is_primary: boolean;
+  consultation_fee: number | string;
+}
+
 export interface Doctor {
   id: string;
   user_id: string;
@@ -76,6 +85,7 @@ export interface Doctor {
   specialty_display: string;
   clinic_name: string;
   clinic: ClinicMinimal | null;
+  clinics: DoctorClinicInfo[]; // New field
   years_experience: number;
   rating: number | string;
   review_count: number;
@@ -134,16 +144,22 @@ export interface Appointment {
   created_at: string;
   updated_at: string;
   rescheduled_from: string | null;
-    doctor: {
-      id: string;
-      full_name: string;
-      specialty: string;
-      specialty_display: string;
-      clinic_name: string;
-      profile_photo: string | null;
-      rating: number | string;
-      consultation_fee: number | string;
-    };
+  clinic: {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+  } | null;
+  doctor: {
+    id: string;
+    full_name: string;
+    specialty: string;
+    specialty_display: string;
+    clinic_name: string;
+    profile_photo: string | null;
+    rating: number | string;
+    consultation_fee: number | string;
+  };
   time_slot: Pick<TimeSlot, 'id' | 'date' | 'start_time' | 'end_time' | 'display_time'>;
 }
 

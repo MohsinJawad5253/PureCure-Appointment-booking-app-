@@ -58,12 +58,14 @@ class DoctorProfile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='doctor_profile')
+    # Deprecated: use DoctorClinic junction table instead.
+    # Keeping it as null=True for migration data transfer.
     clinic = models.ForeignKey(
         'clinics.Clinic',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='doctors'
+        related_name='legacy_doctors'
     )
     profile_photo = models.ImageField(upload_to='doctors/', blank=True, null=True)
     languages = models.JSONField(default=list)
@@ -83,3 +85,70 @@ class DoctorProfile(models.Model):
 
     def __str__(self):
         return f"Dr. {self.user.full_name} — {self.get_specialty_display()}"
+
+class DoctorClinic(models.Model):
+    """
+    Junction table: Doctor ↔ Clinic relationship.
+    A doctor can attend at most 4 clinics.
+    Each clinic visit has its own schedule.
+    """
+    id = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False
+    )
+    doctor = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.CASCADE,
+        related_name='doctor_clinics',
+    )
+    clinic = models.ForeignKey(
+        'clinics.Clinic',
+        on_delete=models.CASCADE,
+        related_name='doctor_clinics',
+    )
+    is_primary = models.BooleanField(
+        default=False,
+        help_text='Primary clinic shown by default on doctor profile',
+    )
+    consultation_fee = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Override consultation fee for this clinic. '
+                  'If null, uses doctor default fee.',
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'doctor_clinics'
+        unique_together = ['doctor', 'clinic']
+        ordering = ['-is_primary', 'clinic__name']
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        # Enforce max 4 clinics per doctor
+        existing = DoctorClinic.objects.filter(
+            doctor=self.doctor
+        ).exclude(id=self.id).count()
+        if existing >= 4:
+            raise ValidationError(
+                'A doctor can be associated with at most 4 clinics.'
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        # If this is marked primary, unmark all others
+        if self.is_primary:
+            DoctorClinic.objects.filter(
+                doctor=self.doctor,
+                is_primary=True,
+            ).exclude(id=self.id).update(is_primary=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return (
+            f"Dr. {self.doctor.user.get_full_name()} "
+            f"@ {self.clinic.name}"
+            f"{' (Primary)' if self.is_primary else ''}"
+        )

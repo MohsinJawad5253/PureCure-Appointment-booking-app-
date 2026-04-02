@@ -32,6 +32,14 @@ class Appointment(models.Model):
         TimeSlot, on_delete=models.PROTECT,
         related_name='appointment'
     )
+    clinic = models.ForeignKey(
+        'clinics.Clinic',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='appointments',
+        help_text='Which clinic the appointment is at.'
+    )
 
     # Denormalized for fast reads (no joins needed for list views)
     appointment_date = models.DateField()

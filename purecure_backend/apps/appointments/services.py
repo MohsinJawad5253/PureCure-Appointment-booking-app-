@@ -11,7 +11,8 @@ class AppointmentService:
     @staticmethod
     @transaction.atomic
     def book_appointment(patient: User, doctor_id: str, slot_id: str,
-                         reason: str = '', patient_notes: str = '') -> Appointment:
+                         reason: str = '', patient_notes: str = '',
+                         clinic_id: str = None) -> Appointment:
         """
         Book an appointment. Atomic — slot status and appointment creation
         happen in the same DB transaction.
@@ -21,14 +22,18 @@ class AppointmentService:
         # 1. Fetch and lock the slot (select_for_update prevents race conditions)
         try:
             slot = TimeSlot.objects.select_for_update().get(id=slot_id)
-        except (TimeSlot.DoesNotExist, ValidationError):
+        except (TimeSlot.DoesNotExist, ValueError):
             raise ValueError("Time slot not found.")
 
         # 2. Verify slot belongs to the requested doctor
         if str(slot.doctor.id) != str(doctor_id):
             raise ValueError("Time slot does not belong to this doctor.")
+            
+        # 3. If clinic_id provided, verify slot belongs to that clinic
+        if clinic_id and str(slot.clinic_id) != str(clinic_id):
+            raise ValueError("Time slot does not belong to the selected clinic.")
 
-        # 3. Check slot is still available
+        # 4. Check slot is still available
         if slot.status != 'available':
             status_messages = {
                 'booked': "This slot has just been booked by someone else.",
@@ -38,12 +43,12 @@ class AppointmentService:
             }
             raise ValueError(status_messages.get(slot.status, "This slot is not available."))
 
-        # 4. Check slot is not in the past
+        # 5. Check slot is not in the past
         slot_dt = datetime.combine(slot.date, slot.start_time).replace(tzinfo=tz.utc)
         if slot_dt <= datetime.now(tz=tz.utc):
             raise ValueError("Cannot book a slot that is in the past.")
 
-        # 5. Check patient has no conflicting upcoming appointment
+        # 6. Check patient has no conflicting upcoming appointment
         conflict = Appointment.objects.filter(
             patient=patient,
             appointment_date=slot.date,
@@ -53,7 +58,7 @@ class AppointmentService:
         if conflict:
             raise ValueError("You already have an appointment at this time.")
 
-        # 6. Check patient has no more than 1 upcoming appointment
+        # 7. Check patient has no more than 1 upcoming appointment
         #    with the same doctor on the same day
         same_day_same_doctor = Appointment.objects.filter(
             patient=patient,
@@ -66,15 +71,16 @@ class AppointmentService:
                 "You already have an appointment with this doctor today."
             )
 
-        # 7. Flip slot to booked
+        # 8. Flip slot to booked
         slot.status = 'booked'
         slot.save(update_fields=['status', 'updated_at'])
 
-        # 8. Create appointment
+        # 9. Create appointment
         appointment = Appointment.objects.create(
             patient=patient,
             doctor=slot.doctor,
             time_slot=slot,
+            clinic=slot.clinic, # Save the clinic from the slot
             appointment_date=slot.date,
             start_time=slot.start_time,
             end_time=slot.end_time,

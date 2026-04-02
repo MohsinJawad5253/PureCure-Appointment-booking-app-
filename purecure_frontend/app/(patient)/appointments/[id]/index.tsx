@@ -153,7 +153,7 @@ export default function AppointmentDetailScreen() {
             <View style={styles.doctorMeta}>
               <Text style={styles.doctorName}>{formatDoctorName(appointment.doctor.full_name)}</Text>
               <Text style={styles.doctorSpecialty}>{appointment.doctor.specialty_display}</Text>
-              <Text style={styles.clinicName}>{appointment.doctor.clinic_name}</Text>
+              <Text style={styles.clinicName}>{appointment.clinic?.name || appointment.doctor.clinic_name}</Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={16} color="#F59E0B" />
                 <Text style={styles.ratingText}>{formatRating(appointment.doctor.rating)}</Text>
@@ -211,7 +211,10 @@ export default function AppointmentDetailScreen() {
               </View>
               <View>
                 <Text style={styles.infoLabel}>Clinic</Text>
-                <Text style={styles.infoValue}>{appointment.doctor.clinic_name}</Text>
+                <Text style={styles.infoValue}>{appointment.clinic?.name || appointment.doctor.clinic_name}</Text>
+                {appointment.clinic?.address && (
+                  <Text style={styles.infoSubValue}>{appointment.clinic.address}</Text>
+                )}
               </View>
             </View>
 
@@ -470,6 +473,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.textPrimary,
+  },
+  infoSubValue: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   bookingId: {
     fontFamily: 'Courier',

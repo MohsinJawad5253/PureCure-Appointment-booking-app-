@@ -6,6 +6,7 @@ export const appointmentService = {
   async book(data: {
     doctor_id: string;
     slot_id: string;
+    clinic_id?: string;
     reason?: string;
     patient_notes?: string;
   }): Promise<Appointment> {

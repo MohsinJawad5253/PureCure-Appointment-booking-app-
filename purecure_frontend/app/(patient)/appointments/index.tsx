@@ -96,7 +96,9 @@ const AppointmentCard = ({
         </View>
         <View style={styles.detailItem}>
           <Ionicons name="business-outline" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.detailText}>{truncate(item.doctor.clinic_name, 25)}</Text>
+          <Text style={styles.detailText}>
+            {truncate(item.clinic?.name || item.doctor.clinic_name, 25)}
+          </Text>
         </View>
       </View>
 

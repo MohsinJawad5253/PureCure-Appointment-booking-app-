@@ -2,29 +2,25 @@ from datetime import date, time, datetime, timedelta
 from django.utils import timezone
 from apps.users.models import DoctorProfile
 from apps.timeslots.models import DoctorSchedule, TimeSlot, BlockedDate
+from apps.clinics.models import Clinic
 
 
-def generate_slots_for_doctor_date(doctor: DoctorProfile, target_date: date) -> dict:
+def generate_slots_for_doctor_date(
+    doctor: DoctorProfile, 
+    target_date: date, 
+    clinic_id: str = None
+) -> dict:
     """
     Generate TimeSlot rows for a doctor on a specific date.
     
-    Logic:
-    1. Get the weekday of target_date (0=Mon ... 6=Sun)
-    2. Find all active DoctorSchedule rows for doctor + weekday
-    3. For each schedule, generate time windows of slot_duration_minutes
-       from start_time to end_time
-    4. Skip if a TimeSlot already exists for that doctor+date+start_time
-    5. Check BlockedDate — if the entire day is blocked, skip ALL slots
-    6. If partial block, skip slots that overlap the blocked window
-    7. Skip any slots whose start_time is in the past (for today's date)
-    8. Bulk create all new TimeSlot rows
-    9. Return {"created": N, "skipped": N, "date": str(target_date)}
+    If clinic_id is provided, only generate slots for that specific clinic.
+    Otherwise, generate slots for ALL clinics the doctor is associated with.
     """
     weekday = target_date.weekday()
     today = timezone.now().date()
     now_time = timezone.now().time()
 
-    # Check for full-day block
+    # Check for full-day block (Blocks doctor, not specific clinic)
     try:
         blocked = BlockedDate.objects.get(doctor=doctor, date=target_date)
         if blocked.block_entire_day:
@@ -36,13 +32,22 @@ def generate_slots_for_doctor_date(doctor: DoctorProfile, target_date: date) -> 
     schedules = DoctorSchedule.objects.filter(
         doctor=doctor, weekday=weekday, is_active=True
     )
+    if clinic_id:
+        schedules = schedules.filter(clinic_id=clinic_id)
+        
     if not schedules.exists():
         return {"created": 0, "skipped": 0, "date": str(target_date), "no_schedule": True}
 
-    # Get existing slots to avoid duplicates
-    existing_starts = set(
-        TimeSlot.objects.filter(doctor=doctor, date=target_date)
-        .values_list('start_time', flat=True)
+    # Get existing slots for the doctor on this date to avoid duplicates
+    # We filter by clinic as well to allow multiple clinics on same start_time if ever needed
+    # though unique_together ['doctor', 'clinic', 'date', 'start_time'] allows it.
+    existing_qs = TimeSlot.objects.filter(doctor=doctor, date=target_date)
+    if clinic_id:
+        existing_qs = existing_qs.filter(clinic_id=clinic_id)
+        
+    # Set of (clinic_id, start_time) tuples for efficient lookup
+    existing_slots = set(
+        existing_qs.values_list('clinic_id', 'start_time')
     )
 
     slots_to_create = []
@@ -63,8 +68,8 @@ def generate_slots_for_doctor_date(doctor: DoctorProfile, target_date: date) -> 
                 skipped += 1
                 continue
 
-            # Skip already existing
-            if slot_start in existing_starts:
+            # Skip already existing for THIS specific clinic
+            if (schedule.clinic_id, slot_start) in existing_slots:
                 current += duration
                 skipped += 1
                 continue
@@ -80,6 +85,7 @@ def generate_slots_for_doctor_date(doctor: DoctorProfile, target_date: date) -> 
 
             slots_to_create.append(TimeSlot(
                 doctor=doctor,
+                clinic=schedule.clinic, # Link slot to the clinic from the schedule
                 date=target_date,
                 start_time=slot_start,
                 end_time=slot_end,
@@ -98,17 +104,19 @@ def generate_slots_for_doctor_date(doctor: DoctorProfile, target_date: date) -> 
     }
 
 
-def generate_slots_for_doctor_range(doctor: DoctorProfile, days_ahead: int = 14) -> list:
+def generate_slots_for_doctor_range(
+    doctor: DoctorProfile, 
+    days_ahead: int = 14,
+    clinic_id: str = None
+) -> list:
     """
     Generate slots for a doctor for the next N days starting from today.
-    Calls generate_slots_for_doctor_date() for each day.
-    Returns list of per-day result dicts.
     """
     today = timezone.now().date()
     results = []
     for i in range(days_ahead):
         target = today + timedelta(days=i)
-        result = generate_slots_for_doctor_date(doctor, target)
+        result = generate_slots_for_doctor_date(doctor, target, clinic_id=clinic_id)
         results.append(result)
     return results
 
@@ -116,7 +124,6 @@ def generate_slots_for_doctor_range(doctor: DoctorProfile, days_ahead: int = 14)
 def generate_slots_for_all_doctors(days_ahead: int = 14) -> dict:
     """
     Generate slots for ALL active doctors for the next N days.
-    Used by the management command and nightly cron job.
     """
     doctors = DoctorProfile.objects.filter(
         is_available=True, user__is_active=True
@@ -146,46 +153,55 @@ def generate_slots_for_all_doctors(days_ahead: int = 14) -> dict:
     }
 
 
-def get_available_slots_by_date(doctor: DoctorProfile, target_date: date) -> list:
+def get_available_slots_by_date(
+    doctor: DoctorProfile, 
+    target_date: date,
+    clinic_id: str = None
+) -> list:
     """
     Returns available TimeSlot queryset for a doctor on a date.
-    Auto-generates slots first if none exist for that date.
+    Auto-generates slots first if none exist for that date/clinic.
     """
     existing = TimeSlot.objects.filter(doctor=doctor, date=target_date)
+    if clinic_id:
+        existing = existing.filter(clinic_id=clinic_id)
+        
     if not existing.exists():
-        generate_slots_for_doctor_date(doctor, target_date)
+        generate_slots_for_doctor_date(doctor, target_date, clinic_id=clinic_id)
 
     queryset = TimeSlot.objects.filter(
         doctor=doctor,
         date=target_date,
         status='available',
-    ).order_by('start_time')
+    )
+    
+    if clinic_id:
+        queryset = queryset.filter(clinic_id=clinic_id)
+        
+    queryset = queryset.order_by('start_time')
 
     # If it's today, filter out past slots
     if target_date == timezone.now().date():
         now_time = timezone.now().time()
-        # QuerySet filtering
         queryset = queryset.filter(start_time__gt=now_time)
 
     return queryset
 
 
-def get_week_availability(doctor: DoctorProfile, start_date: date) -> list:
+def get_week_availability(
+    doctor: DoctorProfile, 
+    start_date: date,
+    clinic_id: str = None
+) -> list:
     """
     Returns slot availability summary for 7 days starting from start_date.
-    Used by the date picker to show which days have open slots.
-    Returns:
-    [
-      {"date": "2026-03-14", "weekday": "Mon", "available_count": 8, "has_slots": true},
-      ...
-    ]
     """
     result = []
     weekday_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     for i in range(7):
         target = start_date + timedelta(days=i)
-        slots = get_available_slots_by_date(doctor, target)
-        # Handle queryset count or list len
+        slots = get_available_slots_by_date(doctor, target, clinic_id=clinic_id)
+        
         if hasattr(slots, 'count'):
             count = slots.count()
         else:

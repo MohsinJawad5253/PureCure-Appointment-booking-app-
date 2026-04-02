@@ -74,6 +74,7 @@ class AppointmentPatientSerializer(serializers.ModelSerializer):
     has_review = serializers.SerializerMethodField()
     doctor = AppointmentDoctorMinimalSerializer(read_only=True)
     time_slot = AppointmentTimeSlotMinimalSerializer(read_only=True)
+    clinic = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -82,16 +83,38 @@ class AppointmentPatientSerializer(serializers.ModelSerializer):
             'reason', 'patient_notes', 'cancellation_reason', 'cancelled_at',
             'is_cancellable', 'is_reschedulable', 'has_review',
             'created_at', 'updated_at', 'rescheduled_from',
-            'doctor', 'time_slot'
+            'doctor', 'time_slot', 'clinic'
         ]
 
     def get_has_review(self, obj):
         return hasattr(obj, 'review')
 
+    def get_clinic(self, obj):
+        if obj.clinic:
+            return {
+                'id': str(obj.clinic.id),
+                'name': obj.clinic.name,
+                'city': obj.clinic.city,
+                'address': obj.clinic.address,
+            }
+        # Fallback to doctor's primary clinic
+        primary = obj.doctor.doctor_clinics.filter(
+            is_primary=True
+        ).select_related('clinic').first()
+        if primary:
+            return {
+                'id': str(primary.clinic.id),
+                'name': primary.clinic.name,
+                'city': primary.clinic.city,
+                'address': primary.clinic.address,
+            }
+        return None
+
 
 class AppointmentDoctorSerializer(serializers.ModelSerializer):
     patient = AppointmentPatientMinimalSerializer(read_only=True)
     time_slot = AppointmentTimeSlotMinimalSerializer(read_only=True)
+    clinic = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -99,13 +122,24 @@ class AppointmentDoctorSerializer(serializers.ModelSerializer):
             'id', 'status', 'appointment_date', 'start_time', 'end_time',
             'reason', 'patient_notes', 'notes',
             'cancellation_reason', 'cancelled_at',
-            'created_at', 'patient', 'time_slot'
+            'created_at', 'patient', 'time_slot', 'clinic'
         ]
+
+    def get_clinic(self, obj):
+        if obj.clinic:
+            return {
+                'id': str(obj.clinic.id),
+                'name': obj.clinic.name,
+                'city': obj.clinic.city,
+                'address': obj.clinic.address,
+            }
+        return None
 
 
 class BookAppointmentSerializer(serializers.Serializer):
     doctor_id = serializers.CharField()
     slot_id = serializers.UUIDField()
+    clinic_id = serializers.UUIDField(required=False)
     reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
     patient_notes = serializers.CharField(required=False, allow_blank=True, max_length=1000)
 

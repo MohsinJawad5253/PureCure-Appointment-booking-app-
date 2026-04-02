@@ -23,6 +23,14 @@ class DoctorSchedule(models.Model):
     doctor = models.ForeignKey(
         DoctorProfile, on_delete=models.CASCADE, related_name='schedules'
     )
+    clinic = models.ForeignKey(
+        'clinics.Clinic',
+        on_delete=models.CASCADE,
+        related_name='doctor_schedules',
+        null=True,
+        blank=True,
+        help_text='Which clinic this schedule applies to. Null = legacy support.'
+    )
     weekday = models.IntegerField(choices=WEEKDAY_CHOICES)
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -34,7 +42,7 @@ class DoctorSchedule(models.Model):
 
     class Meta:
         db_table = 'doctor_schedules'
-        unique_together = ['doctor', 'weekday', 'start_time']
+        unique_together = ['doctor', 'clinic', 'weekday', 'start_time']
         ordering = ['weekday', 'start_time']
 
     def clean(self):
@@ -42,7 +50,8 @@ class DoctorSchedule(models.Model):
             raise ValidationError("start_time must be before end_time.")
 
     def __str__(self):
-        return f"Dr.{self.doctor.user.last_name} — {self.get_weekday_display()} {self.start_time}–{self.end_time}"
+        clinic_name = self.clinic.name if self.clinic else "Global"
+        return f"Dr.{self.doctor.user.last_name} @ {clinic_name} — {self.get_weekday_display()} {self.start_time}–{self.end_time}"
 
 
 class TimeSlot(models.Model):
@@ -62,6 +71,14 @@ class TimeSlot(models.Model):
     doctor = models.ForeignKey(
         DoctorProfile, on_delete=models.CASCADE, related_name='time_slots'
     )
+    clinic = models.ForeignKey(
+        'clinics.Clinic',
+        on_delete=models.CASCADE,
+        related_name='time_slots',
+        null=True,
+        blank=True,
+        help_text='Which clinic this slot is at.'
+    )
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -74,10 +91,11 @@ class TimeSlot(models.Model):
 
     class Meta:
         db_table = 'time_slots'
-        unique_together = ['doctor', 'date', 'start_time']
+        unique_together = ['doctor', 'clinic', 'date', 'start_time']
         ordering = ['date', 'start_time']
         indexes = [
             models.Index(fields=['doctor', 'date']),
+            models.Index(fields=['doctor', 'clinic', 'date']),
             models.Index(fields=['date', 'status']),
             models.Index(fields=['doctor', 'date', 'status']),
         ]

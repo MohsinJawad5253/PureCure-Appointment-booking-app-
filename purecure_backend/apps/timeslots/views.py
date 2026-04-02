@@ -22,6 +22,8 @@ class AvailableSlotsView(APIView):
 
     def get(self, request, doctor_id):
         date_str = request.query_params.get('date')
+        clinic_id = request.query_params.get('clinic_id') # Extract clinic_id
+        
         if not date_str:
             return api_response(
                 success=False,
@@ -54,7 +56,8 @@ class AvailableSlotsView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
-        slots = get_available_slots_by_date(doctor, target_date)
+        # Pass clinic_id to utility
+        slots = get_available_slots_by_date(doctor, target_date, clinic_id=clinic_id)
         serializer = TimeSlotSerializer(slots, many=True)
         
         return api_response(
@@ -62,6 +65,7 @@ class AvailableSlotsView(APIView):
             message="Available slots retrieved",
             data={
                 "doctor_id": str(doctor_id),
+                "clinic_id": clinic_id, # Include in response
                 "date": date_str,
                 "slots": serializer.data,
                 "total_available": len(serializer.data)
@@ -74,6 +78,8 @@ class WeekAvailabilityView(APIView):
 
     def get(self, request, doctor_id):
         start_date_str = request.query_params.get('start_date')
+        clinic_id = request.query_params.get('clinic_id') # Extract clinic_id
+        
         if start_date_str:
             try:
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -95,7 +101,8 @@ class WeekAvailabilityView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
-        week_data = get_week_availability(doctor, start_date)
+        # Pass clinic_id to utility
+        week_data = get_week_availability(doctor, start_date, clinic_id=clinic_id)
         serializer = WeekAvailabilitySerializer(week_data, many=True)
         
         return api_response(
@@ -103,6 +110,7 @@ class WeekAvailabilityView(APIView):
             message="Weekly availability retrieved",
             data={
                 "doctor_id": str(doctor_id),
+                "clinic_id": clinic_id, # Include in response
                 "week": serializer.data
             }
         )

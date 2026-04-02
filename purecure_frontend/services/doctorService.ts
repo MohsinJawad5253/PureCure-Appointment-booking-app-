@@ -39,20 +39,28 @@ export const doctorService = {
 
   async weekAvailability(
     doctorId: string,
-    startDate?: string
+    startDate?: string,
+    clinicId?: string
   ): Promise<DayAvailability[]> {
     const res = await api.get(`/timeslots/${doctorId}/week/`, {
-      params: startDate ? { start_date: startDate } : undefined,
+      params: {
+        ...(startDate ? { start_date: startDate } : {}),
+        ...(clinicId ? { clinic_id: clinicId } : {}),
+      },
     });
     return res.data.data.week;
   },
 
   async availableSlots(
     doctorId: string,
-    date: string
+    date: string,
+    clinicId?: string
   ): Promise<TimeSlot[]> {
     const res = await api.get(`/timeslots/${doctorId}/slots/`, {
-      params: { date },
+      params: { 
+        date,
+        ...(clinicId ? { clinic_id: clinicId } : {}),
+      },
     });
     return res.data.data.slots;
   },
