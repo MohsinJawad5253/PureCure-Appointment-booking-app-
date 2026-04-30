@@ -56,4 +56,40 @@ export const doctorService = {
     });
     return res.data.data.slots;
   },
+
+  async reviews(
+    doctorId: string,
+    params?: { page?: number; rating?: string }
+  ): Promise<{
+    doctor: {
+      id: string;
+      full_name: string;
+      specialty: string;
+      profile_photo: string | null;
+    };
+    summary: {
+      average_rating: number;
+      total_reviews: number;
+      breakdown: Record<string, number>;
+    };
+    reviews: Array<{
+      id: string;
+      rating: number;
+      comment: string;
+      is_anonymous: boolean;
+      patient_name: string;
+      patient_initials: string;
+      time_ago: string;
+      created_at: string;
+    }>;
+    page: number;
+    total_pages: number;
+    has_next: boolean;
+  }> {
+    const res = await api.get(
+      `/doctors/${doctorId}/reviews/`,
+      { params }
+    );
+    return res.data.data ?? res.data;
+  },
 };

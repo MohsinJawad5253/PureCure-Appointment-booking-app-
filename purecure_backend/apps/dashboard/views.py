@@ -13,6 +13,9 @@ from apps.appointments.models import Appointment, AppointmentReview
 from apps.users.permissions import IsDoctor
 from . import selectors
 from . import serializers
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def api_response(success, message, data=None, errors=None, status_code=200):
@@ -139,24 +142,32 @@ class DashboardStatsView(APIView):
     permission_classes = [IsDoctor]
 
     def get(self, request):
-        doctor = request.user.doctor_profile
-        stats = selectors.get_dashboard_stats(doctor)
-        
-        # Serialize next_appointment if it exists
-        if stats['next_appointment']:
-            serializer = serializers.AgendaAppointmentSerializer(stats['next_appointment'], context={'request': request})
-            stats['next_appointment'] = serializer.data
+        try:
+            doctor = request.user.doctor_profile
+            stats = selectors.get_dashboard_stats(doctor)
+            
+            # Serialize next_appointment if it exists
+            if stats['next_appointment']:
+                serializer = serializers.AgendaAppointmentSerializer(stats['next_appointment'], context={'request': request})
+                stats['next_appointment'] = serializer.data
 
-        return api_response(True, "Dashboard stats retrieved", data=stats)
+            return api_response(True, "Dashboard stats retrieved", data=stats)
+        except Exception as e:
+            logger.error(f"DashboardStatsView error: {e}", exc_info=True)
+            return api_response(False, f"Error: {str(e)}", status_code=500)
 
 
 class EarningsSummaryView(APIView):
     permission_classes = [IsDoctor]
 
     def get(self, request):
-        doctor = request.user.doctor_profile
-        earnings = selectors.get_earnings_summary(doctor)
-        return api_response(True, "Earnings summary retrieved", data=earnings)
+        try:
+            doctor = request.user.doctor_profile
+            earnings = selectors.get_earnings_summary(doctor)
+            return api_response(True, "Earnings summary retrieved", data=earnings)
+        except Exception as e:
+            logger.error(f"EarningsSummaryView error: {e}", exc_info=True)
+            return api_response(False, f"Error: {str(e)}", status_code=500)
 
 
 class DoctorProfileView(APIView):

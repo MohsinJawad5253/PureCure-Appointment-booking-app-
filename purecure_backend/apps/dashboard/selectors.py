@@ -8,6 +8,9 @@ from django.utils import timezone
 from apps.users.models import DoctorProfile, User
 from apps.appointments.models import Appointment, AppointmentReview
 from apps.timeslots.models import TimeSlot
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────
@@ -210,6 +213,7 @@ def get_dashboard_stats(doctor: DoctorProfile) -> dict:
     week_start = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
 
+    logger.info(f"Getting dashboard stats for doctor {doctor.id}")
     all_appts = Appointment.objects.filter(doctor=doctor)
 
     def count_by_status(qs):
@@ -296,13 +300,7 @@ def get_dashboard_stats(doctor: DoctorProfile) -> dict:
             'total_reviews': reviews.count(),
             'breakdown': rating_breakdown,
         },
-        'monthly_trend': [
-            {
-                'month': item['month'].strftime('%b %Y'),
-                'count': item['count'],
-            }
-            for item in monthly_trend
-        ],
+        'monthly_trend': monthly_trend,
         'next_appointment': next_appt,
     }
 
@@ -317,7 +315,8 @@ def get_earnings_summary(doctor: DoctorProfile) -> dict:
     last_month_start = (month_start - timedelta(days=1)).replace(day=1)
     last_month_end = month_start - timedelta(days=1)
 
-    fee = float(doctor.consultation_fee)
+    logger.info(f"Getting earnings summary for doctor {doctor.id}")
+    fee = float(doctor.consultation_fee or 0)
 
     def earned(qs):
         count = qs.filter(
@@ -377,7 +376,7 @@ def get_earnings_summary(doctor: DoctorProfile) -> dict:
         'all_time': all_time_earnings,
         'monthly_breakdown': [
             {
-                'month': item['month'].strftime('%b %Y'),
+                'month': item['month'],
                 'appointments': item['count'],
                 'earned': round(item['count'] * fee, 2),
             }

@@ -71,6 +71,7 @@ export default function PatientTabLayout() {
 
       {/* Hide all non-tab screens from tab bar */}
       <Tabs.Screen name="doctor/[id]" options={{ href: null }} />
+      <Tabs.Screen name="doctor/[id]/reviews" options={{ href: null }} />
       <Tabs.Screen name="booking/confirm" options={{ href: null }} />
       <Tabs.Screen name="booking/success" options={{ href: null }} />
       <Tabs.Screen name="clinic/[id]" options={{ href: null }} />

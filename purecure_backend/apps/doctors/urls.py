@@ -6,5 +6,6 @@ urlpatterns = [
     path('top-rated/', views.TopRatedDoctorsView.as_view(), name='doctor-top-rated'),
     path('specialties/', views.SpecialtyListView.as_view(), name='specialty-list'),
     path('specialty/<str:specialty>/', views.DoctorsBySpecialtyView.as_view(), name='doctors-by-specialty'),
+    path('<int:doctor_id>/reviews/', views.DoctorReviewsView.as_view(), name='doctor-reviews'),
     path('<int:id>/', views.DoctorDetailView.as_view(), name='doctor-detail'),
 ]
