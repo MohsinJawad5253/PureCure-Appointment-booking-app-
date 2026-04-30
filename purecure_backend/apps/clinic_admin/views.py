@@ -177,14 +177,14 @@ class ClinicDashboardView(APIView):
 
         # Revenue (completed × fee)
         revenue_month = sum(
-            float(a.doctor.consultation_fee or 0)
+            float(a.doctor.consultation_fee)
             for a in month_appts.filter(
                 status='completed'
             ).select_related('doctor')
         )
 
         revenue_today = sum(
-            float(a.doctor.consultation_fee or 0)
+            float(a.doctor.consultation_fee)
             for a in today_appts.filter(
                 status='completed'
             ).select_related('doctor')
@@ -287,10 +287,6 @@ class ClinicDashboardView(APIView):
                 'monthly_trend': monthly_trend,
             },
         )
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f'ClinicDashboardView error: {e}', exc_info=True)
-            return api_response(False, f"Error: {str(e)}", status_code=500)
 
 
 class ClinicPatientsView(APIView):
@@ -733,7 +729,7 @@ class ClinicReportDataView(APIView):
 
         # Revenue
         total_revenue = sum(
-            float(a.doctor.consultation_fee or 0)
+            float(a.doctor.consultation_fee)
             for a in completed.select_related('doctor')
         )
 
@@ -752,7 +748,7 @@ class ClinicReportDataView(APIView):
             d_appts = appts.filter(doctor=d)
             d_completed = d_appts.filter(status='completed')
             d_revenue = d_completed.count() * float(
-                d.consultation_fee or 0
+                d.consultation_fee
             )
             d_reviews = AppointmentReview.objects.filter(
                 doctor=d
@@ -778,7 +774,7 @@ class ClinicReportDataView(APIView):
                 'revenue': d_revenue,
                 'average_rating': round_custom(d_avg, 1),
                 'total_reviews': d_reviews.count(),
-                'consultation_fee': float(d.consultation_fee or 0),
+                'consultation_fee': float(d.consultation_fee),
             })
 
         # Daily breakdown — Python grouping (SQLite compatible)

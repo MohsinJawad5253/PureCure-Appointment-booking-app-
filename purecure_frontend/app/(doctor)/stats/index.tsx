@@ -76,35 +76,15 @@ export default function DoctorStats() {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const [statsRes, earningsRes] = await Promise.all([
-          dashboardService.stats().catch(err => { console.error('Stats API error:', err); return null; }),
-          dashboardService.earnings().catch(err => { console.error('Earnings API error:', err); return null; }),
+        const [stats, earnings] = await Promise.all([
+          dashboardService.stats(),
+          dashboardService.earnings(),
         ]);
-
-        console.log('Stats data:', statsRes);
-        console.log('Earnings data:', earningsRes);
-
-        const s = statsRes?.data ?? statsRes ?? {};
-        const e = earningsRes?.data ?? earningsRes ?? {};
-
-        // Ensure we have at least empty structures if data is missing
-        setStatsData(Object.keys(s).length > 0 ? s : { 
-          today: { total: 0, completed: 0, pending: 0, cancelled: 0 },
-          this_week: { total: 0, completed: 0, pending: 0, cancelled: 0 },
-          this_month: { total: 0, completed: 0, pending: 0, cancelled: 0 },
-          all_time: { total: 0, completed: 0, pending: 0, cancelled: 0 },
-          ratings: { average: 0, total_reviews: 0, breakdown: {} },
-          monthly_trend: []
-        });
-        setEarningsData(Object.keys(e).length > 0 ? e : {
-          today: 0, this_week: 0, this_month: 0, all_time: 0, monthly_breakdown: []
-        });
-
-        if (!statsRes || !earningsRes) {
-          Toast.show({ type: 'info', text1: 'Some stats could not be loaded' });
-        }
-      } catch (err: any) {
-        console.error('Stats fetch outer error:', err);
+        const s = stats.data ?? stats;
+        const e = earnings.data ?? earnings;
+        setStatsData(s);
+        setEarningsData(e);
+      } catch {
         Toast.show({ type: 'error', text1: 'Failed to load stats' });
       } finally {
         setLoading(false);

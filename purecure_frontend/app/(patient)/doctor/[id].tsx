@@ -142,26 +142,10 @@ export default function DoctorProfileScreen() {
           <Text style={styles.name}>{formatDoctorName(doctor.full_name)}</Text>
           <Text style={styles.specialty}>{doctor.specialty_display.toUpperCase()}</Text>
           <Text style={styles.clinicInfo}>{doctor.clinic_name} • {doctor.years_experience}+ Years Exp.</Text>
-          <TouchableOpacity 
-            style={styles.ratingRow}
-            activeOpacity={0.7}
-            onPress={() => {
-              router.push({
-                pathname: '/(patient)/doctor/[id]/reviews',
-                params: {
-                  id: doctor.id,
-                  doctorName: doctor.full_name,
-                  specialty: doctor.specialty_display,
-                  profilePhoto: doctor.profile_photo ?? '',
-                },
-              });
-            }}
-          >
+          <View style={styles.ratingRow}>
             <StarRating rating={Number(doctor.rating || 0)} />
             <Text style={styles.reviewsText}>({Number(doctor.review_count || 0)} Reviews)</Text>
-            <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
-          </TouchableOpacity>
-          <Text style={styles.tapToSeeHint}>Tap to see all reviews</Text>
+          </View>
         </View>
 
         {/* STATS ROW */}
@@ -380,12 +364,6 @@ const styles = StyleSheet.create({
   reviewsText: {
     fontSize: 12,
     color: COLORS.textSecondary,
-  },
-  tapToSeeHint: {
-    fontSize: 10,
-    color: COLORS.primary,
-    marginTop: 4,
-    fontWeight: '500',
   },
   statsRow: {
     flexDirection: 'row',
